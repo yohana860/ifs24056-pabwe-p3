@@ -1,994 +1,340 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="NexaHub — aplikasi produktivitas ringan untuk mengelola pengeluaran, bookmark, dan kuis interaktif.">
-  <title>NexaHub — Productivity Hub</title>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Harian — Catat, Simpan, Uji</title>
 
-  <!-- Google Fonts + Lucide Icons via CDN -->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet">
-  <script src="https://unpkg.com/lucide@latest"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght,ital@9..144,300..700,0..1&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 
-  <style>
-    :root {
-      --bg: #f6f7fb;
-      --surface: #ffffff;
-      --surface-soft: #f8f9fc;
-      --text: #172033;
-      --muted: #6f7890;
-      --border: #e7eaf1;
-      --primary: #635bff;
-      --primary-dark: #5048e5;
-      --primary-soft: #efeeff;
-      --success: #12a36a;
-      --success-soft: #e7f8f0;
-      --danger: #e14d5d;
-      --danger-soft: #fff0f2;
-      --warning: #d58b12;
-      --warning-soft: #fff7e6;
-      --shadow: 0 16px 50px rgba(25, 35, 60, .08);
-      --shadow-sm: 0 5px 20px rgba(25, 35, 60, .06);
-      --radius-lg: 24px;
-      --radius-md: 16px;
-      --radius-sm: 11px;
-    }
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3/dist/tabler-icons.min.css">
 
-    * { box-sizing: border-box; }
-    html { scroll-behavior: smooth; }
-    body {
-      margin: 0;
-      min-height: 100vh;
-      background:
-        radial-gradient(circle at 10% 0%, rgba(99,91,255,.09), transparent 28rem),
-        radial-gradient(circle at 100% 10%, rgba(18,163,106,.07), transparent 25rem),
-        var(--bg);
-      color: var(--text);
-      font-family: "DM Sans", sans-serif;
-      line-height: 1.5;
-    }
-    button, input, select, textarea { font: inherit; }
-    button { cursor: pointer; }
-    a { color: inherit; }
-    [hidden] { display: none !important; }
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        colors: {
+          ink: '#1E2422',
+          paper: '#EFF3EE',
+          paperdim: '#E4E9E0',
+          line: '#D7DED2',
+          mango: '#E2A63B',
+          mangodark: '#C98F27',
+          pine: '#2F6F62',
+          pinedim: '#E4EEEA',
+          rust: '#B54B3A',
+          rustdim: '#F3E3DF',
+        },
+        fontFamily: {
+          display: ['"Fraunces"', 'serif'],
+          body: ['"Manrope"', 'sans-serif'],
+        },
+      },
+    },
+  };
+</script>
 
-    .app-shell {
-      width: min(1240px, calc(100% - 32px));
-      margin: 0 auto;
-      padding: 26px 0 44px;
-    }
+<style>
+  html { scroll-behavior: smooth; }
+  body { font-family: 'Manrope', sans-serif; }
+  .font-display { font-family: 'Fraunces', serif; }
 
-    header.topbar {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 20px;
-      margin-bottom: 24px;
-    }
+  /* Tab underline indicator */
+  #tabIndicator { transition: transform 300ms cubic-bezier(.65,0,.35,1), width 300ms cubic-bezier(.65,0,.35,1); }
 
-    .brand {
-      display: flex;
-      align-items: center;
-      gap: 13px;
-    }
-    .brand-mark {
-      width: 46px;
-      height: 46px;
-      display: grid;
-      place-items: center;
-      color: white;
-      border-radius: 15px;
-      background: linear-gradient(135deg, var(--primary), #8b7cff);
-      box-shadow: 0 10px 24px rgba(99,91,255,.25);
-    }
-    .brand-mark svg { width: 22px; height: 22px; }
-    .brand h1 {
-      font: 800 20px/1 "Plus Jakarta Sans", sans-serif;
-      letter-spacing: -.04em;
-      margin: 0;
-    }
-    .brand p {
-      margin: 5px 0 0;
-      color: var(--muted);
-      font-size: 12px;
-    }
+  /* Modal open/close */
+  .modal-shell { transition: opacity 200ms ease; }
+  .modal-card { transition: transform 220ms cubic-bezier(.2,.8,.2,1), opacity 220ms ease; }
 
-    .status-pill {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      padding: 9px 12px;
-      background: rgba(255,255,255,.78);
-      border: 1px solid var(--border);
-      border-radius: 999px;
-      color: var(--muted);
-      font-size: 12px;
-      box-shadow: var(--shadow-sm);
-    }
-    .status-dot {
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
-      background: var(--success);
-      box-shadow: 0 0 0 4px rgba(18,163,106,.10);
-    }
+  /* Custom checkbox-like radio pills */
+  input[type="radio"].tipe-radio { position: absolute; opacity: 0; pointer-events: none; }
 
-    .hero {
-      display: grid;
-      grid-template-columns: 1.4fr .6fr;
-      gap: 20px;
-      margin-bottom: 20px;
-    }
-    .hero-card, .insight-card {
-      background: rgba(255,255,255,.82);
-      border: 1px solid rgba(231,234,241,.9);
-      border-radius: var(--radius-lg);
-      box-shadow: var(--shadow);
-      backdrop-filter: blur(12px);
-    }
-    .hero-card {
-      padding: 28px;
-      position: relative;
-      overflow: hidden;
-    }
-    .hero-card::after {
-      content: "";
-      position: absolute;
-      width: 180px;
-      height: 180px;
-      right: -70px;
-      top: -80px;
-      border-radius: 50%;
-      background: rgba(99,91,255,.10);
-    }
-    .eyebrow {
-      display: inline-flex;
-      align-items: center;
-      gap: 7px;
-      color: var(--primary);
-      background: var(--primary-soft);
-      border-radius: 999px;
-      padding: 6px 10px;
-      font-size: 11px;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: .07em;
-    }
-    .hero h2 {
-      max-width: 720px;
-      margin: 14px 0 8px;
-      font: 800 clamp(25px, 4vw, 40px)/1.12 "Plus Jakarta Sans", sans-serif;
-      letter-spacing: -.055em;
-    }
-    .hero h2 span { color: var(--primary); }
-    .hero p {
-      margin: 0;
-      max-width: 650px;
-      color: var(--muted);
-      font-size: 14px;
-    }
-    .insight-card {
-      padding: 23px;
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between;
-      min-height: 180px;
-    }
-    .insight-label {
-      color: var(--muted);
-      font-size: 12px;
-      font-weight: 700;
-    }
-    .insight-value {
-      font: 800 30px/1.1 "Plus Jakarta Sans", sans-serif;
-      letter-spacing: -.04em;
-      margin-top: 8px;
-    }
-    .insight-note { color: var(--muted); font-size: 12px; }
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 8px; height: 8px; }
+  ::-webkit-scrollbar-thumb { background: #C7D0C2; border-radius: 999px; }
+  ::-webkit-scrollbar-track { background: transparent; }
 
-    .tabs {
-      position: sticky;
-      top: 10px;
-      z-index: 10;
-      display: flex;
-      gap: 6px;
-      padding: 6px;
-      margin-bottom: 18px;
-      overflow-x: auto;
-      background: rgba(255,255,255,.88);
-      border: 1px solid var(--border);
-      border-radius: 16px;
-      box-shadow: var(--shadow-sm);
-      backdrop-filter: blur(15px);
-    }
-    .tab-btn {
-      flex: 1;
-      min-width: 150px;
-      border: 0;
-      background: transparent;
-      color: var(--muted);
-      border-radius: 11px;
-      padding: 12px 15px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-      font-weight: 700;
-      font-size: 13px;
-      transition: .2s ease;
-    }
-    .tab-btn:hover { color: var(--text); background: var(--surface-soft); }
-    .tab-btn.active {
-      color: var(--primary);
-      background: var(--primary-soft);
-    }
-    .tab-btn svg { width: 17px; }
+  @media (prefers-reduced-motion: reduce) {
+    * { animation-duration: 0.001ms !important; transition-duration: 0.001ms !important; }
+  }
 
-    .panel {
-      display: none;
-      animation: panelIn .28s ease;
-    }
-    .panel.active { display: block; }
-    @keyframes panelIn {
-      from { opacity: 0; transform: translateY(6px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
+  /* Quiz timer bar */
+  #tabIndicator { width: 0; }
+  #quizTimerBar { width: 100%; transition: width 1s linear; }
 
-    .section-head {
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-end;
-      gap: 16px;
-      margin: 22px 0 14px;
-    }
-    .section-head h3 {
-      margin: 0;
-      font: 800 22px/1.2 "Plus Jakarta Sans", sans-serif;
-      letter-spacing: -.04em;
-    }
-    .section-head p { margin: 5px 0 0; color: var(--muted); font-size: 13px; }
-
-    .stats {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 13px;
-      margin-bottom: 16px;
-    }
-    .stat {
-      padding: 18px;
-      border: 1px solid var(--border);
-      border-radius: var(--radius-md);
-      background: var(--surface);
-      box-shadow: var(--shadow-sm);
-    }
-    .stat-top {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      color: var(--muted);
-      font-size: 12px;
-      font-weight: 700;
-    }
-    .stat-icon {
-      width: 34px; height: 34px;
-      display: grid; place-items: center;
-      border-radius: 10px;
-      background: var(--surface-soft);
-    }
-    .stat-icon svg { width: 17px; }
-    .stat-value {
-      margin-top: 13px;
-      font: 800 22px/1.1 "Plus Jakarta Sans", sans-serif;
-      letter-spacing: -.03em;
-      overflow-wrap: anywhere;
-    }
-    .stat.income .stat-icon { color: var(--success); background: var(--success-soft); }
-    .stat.expense .stat-icon { color: var(--danger); background: var(--danger-soft); }
-    .stat.balance .stat-icon { color: var(--primary); background: var(--primary-soft); }
-
-    .workspace {
-      display: grid;
-      grid-template-columns: 340px 1fr;
-      gap: 16px;
-      align-items: start;
-    }
-    .card {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: var(--radius-lg);
-      box-shadow: var(--shadow-sm);
-    }
-    .form-card {
-      padding: 20px;
-      position: sticky;
-      top: 88px;
-    }
-    .card-title {
-      margin: 0 0 3px;
-      font: 800 16px "Plus Jakarta Sans", sans-serif;
-      letter-spacing: -.025em;
-    }
-    .card-subtitle { color: var(--muted); font-size: 12px; margin: 0 0 17px; }
-
-    .field { margin-bottom: 13px; }
-    .field label {
-      display: block;
-      margin: 0 0 6px;
-      font-size: 12px;
-      font-weight: 700;
-      color: #4d566c;
-    }
-    .input, .select, .textarea {
-      width: 100%;
-      border: 1px solid var(--border);
-      border-radius: var(--radius-sm);
-      padding: 11px 12px;
-      background: #fff;
-      color: var(--text);
-      outline: none;
-      transition: .2s;
-    }
-    .textarea { min-height: 88px; resize: vertical; }
-    .input:focus, .select:focus, .textarea:focus {
-      border-color: rgba(99,91,255,.55);
-      box-shadow: 0 0 0 4px rgba(99,91,255,.10);
-    }
-    .input.invalid, .select.invalid, .textarea.invalid {
-      border-color: var(--danger);
-      box-shadow: 0 0 0 4px rgba(225,77,93,.08);
-    }
-    .form-error {
-      min-height: 16px;
-      margin: 5px 0 0;
-      color: var(--danger);
-      font-size: 11px;
-    }
-
-    .btn {
-      border: 0;
-      border-radius: 11px;
-      padding: 11px 14px;
-      display: inline-flex;
-      justify-content: center;
-      align-items: center;
-      gap: 7px;
-      font-weight: 700;
-      font-size: 12px;
-      transition: .2s ease;
-    }
-    .btn svg { width: 16px; }
-    .btn-primary {
-      width: 100%;
-      color: white;
-      background: linear-gradient(135deg, var(--primary), #7a71ff);
-      box-shadow: 0 9px 18px rgba(99,91,255,.18);
-    }
-    .btn-primary:hover { transform: translateY(-1px); background: var(--primary-dark); }
-    .btn-soft { color: var(--primary); background: var(--primary-soft); }
-    .btn-soft:hover { background: #e7e5ff; }
-    .btn-ghost { color: var(--muted); background: var(--surface-soft); }
-    .btn-danger { color: var(--danger); background: var(--danger-soft); }
-    .btn-success { color: var(--success); background: var(--success-soft); }
-    .btn-sm { padding: 8px 10px; font-size: 11px; }
-
-    .toolbar {
-      padding: 13px;
-      display: grid;
-      grid-template-columns: 1.5fr .75fr .75fr;
-      gap: 9px;
-      margin-bottom: 11px;
-    }
-    .toolbar .input, .toolbar .select { padding: 10px 11px; }
-    .items { display: grid; gap: 9px; }
-    .item {
-      padding: 15px;
-      border: 1px solid var(--border);
-      border-radius: var(--radius-md);
-      background: var(--surface);
-      transition: .2s;
-    }
-    .item:hover {
-      transform: translateY(-1px);
-      box-shadow: var(--shadow-sm);
-      border-color: #dfe2eb;
-    }
-    .item-main {
-      display: flex;
-      justify-content: space-between;
-      gap: 13px;
-      align-items: flex-start;
-    }
-    .item-title {
-      margin: 0;
-      font: 700 14px "Plus Jakarta Sans", sans-serif;
-      letter-spacing: -.015em;
-    }
-    .item-meta {
-      display: flex;
-      flex-wrap: wrap;
-      align-items: center;
-      gap: 7px;
-      margin-top: 7px;
-      color: var(--muted);
-      font-size: 11px;
-    }
-    .badge {
-      display: inline-flex;
-      align-items: center;
-      border-radius: 999px;
-      padding: 5px 8px;
-      font-size: 10px;
-      font-weight: 700;
-      background: var(--surface-soft);
-      color: var(--muted);
-    }
-    .badge-income { background: var(--success-soft); color: var(--success); }
-    .badge-expense { background: var(--danger-soft); color: var(--danger); }
-    .badge-primary { background: var(--primary-soft); color: var(--primary); }
-    .amount { font: 800 15px "Plus Jakarta Sans", sans-serif; white-space: nowrap; }
-    .amount.income { color: var(--success); }
-    .amount.expense { color: var(--danger); }
-    .item-actions {
-      display: flex;
-      justify-content: flex-end;
-      gap: 6px;
-      margin-top: 12px;
-      padding-top: 10px;
-      border-top: 1px solid #f0f1f5;
-    }
-
-    .empty {
-      padding: 48px 22px;
-      text-align: center;
-      border: 1px dashed #d9dce5;
-      border-radius: var(--radius-lg);
-      background: rgba(255,255,255,.6);
-    }
-    .empty-icon {
-      width: 50px; height: 50px; margin: 0 auto 12px;
-      display: grid; place-items: center;
-      border-radius: 15px;
-      color: var(--primary);
-      background: var(--primary-soft);
-    }
-    .empty h4 { margin: 0 0 4px; font: 800 15px "Plus Jakarta Sans", sans-serif; }
-    .empty p { max-width: 380px; margin: 0 auto; color: var(--muted); font-size: 12px; }
-
-    /* Bookmark */
-    .bookmark-grid {
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 11px;
-    }
-    .bookmark-card {
-      padding: 17px;
-      border: 1px solid var(--border);
-      border-radius: var(--radius-md);
-      background: var(--surface);
-      box-shadow: var(--shadow-sm);
-    }
-    .bookmark-top {
-      display: flex;
-      gap: 11px;
-      align-items: flex-start;
-    }
-    .site-icon {
-      flex: 0 0 39px;
-      width: 39px; height: 39px;
-      display: grid; place-items: center;
-      border-radius: 11px;
-      color: var(--primary);
-      background: var(--primary-soft);
-      font-weight: 800;
-      text-transform: uppercase;
-    }
-    .bookmark-card h4 {
-      margin: 0;
-      font: 700 14px "Plus Jakarta Sans", sans-serif;
-    }
-    .bookmark-url {
-      display: block;
-      margin-top: 3px;
-      color: var(--primary);
-      font-size: 11px;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-      text-decoration: none;
-    }
-    .bookmark-url:hover { text-decoration: underline; }
-    .bookmark-note {
-      margin: 11px 0 0;
-      color: var(--muted);
-      font-size: 12px;
-      display: -webkit-box;
-      -webkit-line-clamp: 2;
-      -webkit-box-orient: vertical;
-      overflow: hidden;
-    }
-
-    /* Quiz */
-    .quiz-wrap {
-      max-width: 850px;
-      margin: 0 auto;
-    }
-    .quiz-card {
-      padding: clamp(20px, 4vw, 34px);
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: var(--radius-lg);
-      box-shadow: var(--shadow);
-    }
-    .quiz-top {
-      display: flex;
-      justify-content: space-between;
-      gap: 15px;
-      align-items: center;
-      margin-bottom: 17px;
-    }
-    .progress-wrap { flex: 1; }
-    .progress-label {
-      display: flex;
-      justify-content: space-between;
-      color: var(--muted);
-      font-size: 11px;
-      font-weight: 700;
-      margin-bottom: 7px;
-    }
-    .progress {
-      height: 7px;
-      background: #edf0f5;
-      border-radius: 999px;
-      overflow: hidden;
-    }
-    .progress-bar {
-      width: 0%;
-      height: 100%;
-      background: linear-gradient(90deg, var(--primary), #8b7cff);
-      border-radius: inherit;
-      transition: width .3s ease;
-    }
-    .quiz-question {
-      margin: 24px 0 17px;
-      font: 800 clamp(21px, 3vw, 28px)/1.25 "Plus Jakarta Sans", sans-serif;
-      letter-spacing: -.04em;
-    }
-    .options { display: grid; gap: 9px; }
-    .option {
-      position: relative;
-      width: 100%;
-      padding: 14px 15px;
-      display: flex;
-      align-items: center;
-      gap: 11px;
-      text-align: left;
-      border: 1px solid var(--border);
-      border-radius: 13px;
-      color: var(--text);
-      background: #fff;
-      transition: .2s;
-    }
-    .option:hover:not(:disabled) {
-      border-color: rgba(99,91,255,.45);
-      background: #faf9ff;
-      transform: translateX(2px);
-    }
-    .option-key {
-      width: 30px; height: 30px;
-      flex: 0 0 30px;
-      display: grid; place-items: center;
-      border-radius: 9px;
-      color: var(--muted);
-      background: var(--surface-soft);
-      font-weight: 800;
-      font-size: 11px;
-    }
-    .option.correct { border-color: rgba(18,163,106,.45); background: var(--success-soft); }
-    .option.correct .option-key { color: var(--success); background: #d2f3e3; }
-    .option.wrong { border-color: rgba(225,77,93,.45); background: var(--danger-soft); }
-    .option.wrong .option-key { color: var(--danger); background: #ffdfe3; }
-    .quiz-feedback {
-      margin-top: 13px;
-      padding: 12px 14px;
-      border-radius: 11px;
-      font-size: 12px;
-      color: var(--muted);
-      background: var(--surface-soft);
-    }
-    .quiz-actions {
-      display: flex;
-      justify-content: space-between;
-      gap: 10px;
-      margin-top: 19px;
-    }
-    .quiz-actions .btn { width: auto; }
-    .quiz-result {
-      text-align: center;
-      padding: 15px 5px 4px;
-    }
-    .score-circle {
-      width: 110px; height: 110px;
-      margin: 5px auto 17px;
-      display: grid; place-items: center;
-      border-radius: 50%;
-      background: var(--primary-soft);
-      color: var(--primary);
-      font: 800 27px "Plus Jakarta Sans", sans-serif;
-      box-shadow: inset 0 0 0 9px #f8f7ff;
-    }
-    .quiz-result h3 { margin: 0; font: 800 25px "Plus Jakarta Sans", sans-serif; }
-    .quiz-result p { color: var(--muted); font-size: 13px; }
-    .highscore {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      margin: 8px 0 19px;
-      padding: 7px 10px;
-      border-radius: 999px;
-      background: var(--warning-soft);
-      color: var(--warning);
-      font-size: 11px;
-      font-weight: 700;
-    }
-
-    footer {
-      text-align: center;
-      padding-top: 28px;
-      color: var(--muted);
-      font-size: 11px;
-    }
-
-    /* Modal */
-    .modal-backdrop {
-      position: fixed;
-      inset: 0;
-      z-index: 100;
-      display: grid;
-      place-items: center;
-      padding: 18px;
-      background: rgba(16,22,38,.45);
-      backdrop-filter: blur(5px);
-    }
-    .modal {
-      width: min(500px, 100%);
-      max-height: min(760px, calc(100vh - 36px));
-      overflow: auto;
-      padding: 21px;
-      background: var(--surface);
-      border-radius: 20px;
-      box-shadow: 0 25px 80px rgba(12,18,35,.25);
-      animation: modalIn .2s ease;
-    }
-    @keyframes modalIn {
-      from { opacity: 0; transform: translateY(10px) scale(.98); }
-      to { opacity: 1; transform: translateY(0) scale(1); }
-    }
-    .modal-head {
-      display: flex;
-      justify-content: space-between;
-      gap: 15px;
-      align-items: center;
-      margin-bottom: 17px;
-    }
-    .modal-head h3 { margin: 0; font: 800 18px "Plus Jakarta Sans", sans-serif; }
-    .close-btn {
-      width: 34px; height: 34px;
-      display: grid; place-items: center;
-      border: 0;
-      border-radius: 10px;
-      background: var(--surface-soft);
-      color: var(--muted);
-    }
-    .modal-actions {
-      display: flex;
-      justify-content: flex-end;
-      gap: 8px;
-      margin-top: 8px;
-    }
-    .modal-actions .btn { width: auto; }
-
-    .toast {
-      position: fixed;
-      z-index: 200;
-      right: 18px;
-      bottom: 18px;
-      width: min(360px, calc(100% - 36px));
-      padding: 13px 15px;
-      display: flex;
-      align-items: flex-start;
-      gap: 10px;
-      background: #172033;
-      color: white;
-      border-radius: 13px;
-      box-shadow: 0 15px 40px rgba(10,15,30,.22);
-      animation: toastIn .25s ease;
-      font-size: 12px;
-    }
-    .toast svg { flex: 0 0 auto; width: 17px; color: #9df1ca; }
-    @keyframes toastIn {
-      from { opacity: 0; transform: translateY(10px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-
-    @media (max-width: 850px) {
-      .hero, .workspace { grid-template-columns: 1fr; }
-      .form-card { position: static; }
-      .bookmark-grid { grid-template-columns: 1fr; }
-      .toolbar { grid-template-columns: 1fr 1fr; }
-      .toolbar .search { grid-column: 1 / -1; }
-    }
-    @media (max-width: 620px) {
-      .app-shell { width: min(100% - 20px, 1240px); padding-top: 15px; }
-      header.topbar { margin-bottom: 14px; }
-      .status-pill { display: none; }
-      .hero-card { padding: 22px; }
-      .hero h2 { font-size: 27px; }
-      .stats { grid-template-columns: 1fr; }
-      .tabs { top: 5px; }
-      .tab-btn { min-width: 125px; padding: 10px 11px; }
-      .toolbar { grid-template-columns: 1fr; }
-      .toolbar .search { grid-column: auto; }
-      .item-main { flex-direction: column; }
-      .amount { white-space: normal; }
-      .quiz-actions { flex-direction: column-reverse; }
-      .quiz-actions .btn { width: 100%; }
-    }
-  </style>
+  .quiz-option[data-state="correct"] { background:#E4EEEA; border-color:#2F6F62; }
+  .quiz-option[data-state="wrong"] { background:#F3E3DF; border-color:#B54B3A; }
+  .quiz-option[data-state="reveal"] { background:#E4EEEA; border-color:#2F6F62; }
+  .quiz-option:disabled { cursor: default; }
+</style>
 </head>
 
-<body>
-  <div class="app-shell">
-    <header class="topbar">
-      <div class="brand">
-        <div class="brand-mark" aria-hidden="true"><i data-lucide="layers-3"></i></div>
-        <div>
-          <h1>NexaHub</h1>
-          <p>Simple tools. Better everyday.</p>
-        </div>
-      </div>
-      <div class="status-pill">
-        <span class="status-dot"></span>
-        Semua data tersimpan lokal
-      </div>
-    </header>
+<body class="bg-paper text-ink min-h-screen flex flex-col antialiased">
 
-    <section class="hero" aria-label="Pengantar aplikasi">
-      <div class="hero-card">
-        <span class="eyebrow"><i data-lucide="sparkles"></i> Productivity Hub</span>
-        <h2>Kelola hal penting, <span>tanpa terasa ribet.</span></h2>
-        <p>Satu tempat untuk mencatat keuangan, menyimpan tautan favorit, dan menguji pengetahuanmu. Cepat, bersih, dan tetap privat di browser.</p>
+<!-- ============ HEADER + TAB NAV ============ -->
+<header class="sticky top-0 z-30 bg-paper/95 backdrop-blur border-b border-line">
+  <div class="max-w-5xl mx-auto px-5 pt-5">
+    <div class="flex items-center gap-3 mb-5">
+      <svg width="38" height="38" viewBox="0 0 38 38" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <circle cx="14" cy="14" r="11" fill="#2F6F62"/>
+        <circle cx="25" cy="14" r="11" fill="#E2A63B" opacity="0.92"/>
+        <circle cx="19.5" cy="25" r="11" fill="#1E2422" opacity="0.9"/>
+      </svg>
+      <div>
+        <h1 class="font-display text-2xl font-semibold tracking-tight leading-none">Harian</h1>
+        <p class="text-sm text-ink/60 mt-1">Catat uangmu, simpan tautanmu, uji wawasanmu — dalam satu tempat.</p>
       </div>
-      <div class="insight-card">
-        <div>
-          <div class="insight-label">AKTIVITAS TERSIMPAN</div>
-          <div class="insight-value" id="activityCount">0</div>
-        </div>
-        <div class="insight-note">Item yang tersimpan di Expense & Bookmark</div>
-      </div>
-    </section>
+    </div>
 
-    <nav class="tabs" aria-label="Navigasi fitur">
-      <button class="tab-btn active" data-tab="expense" aria-selected="true">
-        <i data-lucide="wallet"></i><span>Pengeluaran</span>
-      </button>
-      <button class="tab-btn" data-tab="bookmark" aria-selected="false">
-        <i data-lucide="bookmark"></i><span>Bookmark</span>
-      </button>
-      <button class="tab-btn" data-tab="quiz" aria-selected="false">
-        <i data-lucide="brain"></i><span>Kuis</span>
-      </button>
+    <nav aria-label="Navigasi fitur" class="relative">
+      <div id="tabList" role="tablist" class="relative flex gap-6 border-b border-line">
+        <a href="?tab=expense" data-tab="expense" role="tab" aria-selected="true" class="tab-btn flex items-center gap-2 pb-3 text-sm font-semibold text-ink transition-colors">
+          <span data-icon="wallet" aria-hidden="true"></span>
+          Uang Harian
+        </a>
+        <a href="?tab=bookmark" data-tab="bookmark" role="tab" aria-selected="false" class="tab-btn flex items-center gap-2 pb-3 text-sm font-semibold text-ink/50 transition-colors">
+          <span data-icon="bookmark" aria-hidden="true"></span>
+          Tautan
+        </a>
+        <a href="?tab=quiz" data-tab="quiz" role="tab" aria-selected="false" class="tab-btn flex items-center gap-2 pb-3 text-sm font-semibold text-ink/50 transition-colors">
+          <span data-icon="target" aria-hidden="true"></span>
+          Kuis
+        </a>
+        <span id="tabIndicator" class="absolute bottom-0 h-[2.5px] bg-mango rounded-full"></span>
+      </div>
     </nav>
-
-    <main>
-      <!-- ================= EXPENSE TRACKER ================= -->
-      <section id="panel-expense" class="panel active" aria-labelledby="expense-title">
-        <div class="section-head">
-          <div>
-            <h3 id="expense-title">Catatan Pengeluaran</h3>
-            <p>Kelola pemasukan dan pengeluaran harian dengan lebih teratur.</p>
-          </div>
-        </div>
-
-        <div class="stats">
-          <article class="stat income">
-            <div class="stat-top"><span>Total pemasukan</span><span class="stat-icon"><i data-lucide="trending-up"></i></span></div>
-            <div class="stat-value" id="totalIncome">Rp0</div>
-          </article>
-          <article class="stat expense">
-            <div class="stat-top"><span>Total pengeluaran</span><span class="stat-icon"><i data-lucide="trending-down"></i></span></div>
-            <div class="stat-value" id="totalExpense">Rp0</div>
-          </article>
-          <article class="stat balance">
-            <div class="stat-top"><span>Saldo</span><span class="stat-icon"><i data-lucide="wallet-cards"></i></span></div>
-            <div class="stat-value" id="balance">Rp0</div>
-          </article>
-        </div>
-
-        <div class="workspace">
-          <form id="expenseForm" class="card form-card" novalidate>
-            <h4 class="card-title">Tambah transaksi</h4>
-            <p class="card-subtitle">Catat transaksi baru untuk hari ini.</p>
-
-            <div class="field">
-              <label for="expenseTitle">Judul / deskripsi</label>
-              <input class="input" id="expenseTitle" name="title" type="text" maxlength="80" placeholder="Contoh: Makan siang">
-              <p class="form-error" id="expenseTitleError"></p>
-            </div>
-            <div class="field">
-              <label for="expenseCategory">Kategori</label>
-              <select class="select" id="expenseCategory" name="category">
-                <option value="">Pilih kategori</option>
-                <option>Makanan</option><option>Transportasi</option><option>Belanja</option>
-                <option>Tagihan</option><option>Hiburan</option><option>Pendidikan</option><option>Lainnya</option>
-              </select>
-              <p class="form-error" id="expenseCategoryError"></p>
-            </div>
-            <div class="field">
-              <label for="expenseAmount">Jumlah (Rp)</label>
-              <input class="input" id="expenseAmount" name="amount" type="number" min="1" step="1" placeholder="50000">
-              <p class="form-error" id="expenseAmountError"></p>
-            </div>
-            <div class="field">
-              <label for="expenseType">Tipe</label>
-              <select class="select" id="expenseType" name="type">
-                <option value="expense">Pengeluaran</option>
-                <option value="income">Pemasukan</option>
-              </select>
-              <p class="form-error" id="expenseTypeError"></p>
-            </div>
-            <div class="field">
-              <label for="expenseDate">Tanggal</label>
-              <input class="input" id="expenseDate" name="date" type="date">
-              <p class="form-error" id="expenseDateError"></p>
-            </div>
-            <button class="btn btn-primary" type="submit"><i data-lucide="plus"></i> Simpan transaksi</button>
-          </form>
-
-          <div>
-            <div class="card toolbar">
-              <input class="input search" id="expenseSearch" type="search" placeholder="Cari judul transaksi..." aria-label="Cari transaksi">
-              <select class="select" id="expenseFilterType" aria-label="Filter tipe">
-                <option value="all">Semua tipe</option>
-                <option value="income">Pemasukan</option>
-                <option value="expense">Pengeluaran</option>
-              </select>
-              <select class="select" id="expenseSort" aria-label="Urutkan transaksi">
-                <option value="newest">Terbaru</option>
-                <option value="oldest">Terlama</option>
-                <option value="highest">Jumlah terbesar</option>
-                <option value="lowest">Jumlah terkecil</option>
-              </select>
-            </div>
-            <div id="expenseList" class="items"></div>
-          </div>
-        </div>
-      </section>
-
-      <!-- ================= BOOKMARK MANAGER ================= -->
-      <section id="panel-bookmark" class="panel" aria-labelledby="bookmark-title">
-        <div class="section-head">
-          <div>
-            <h3 id="bookmark-title">Bookmark Manager</h3>
-            <p>Simpan website penting agar selalu mudah ditemukan.</p>
-          </div>
-        </div>
-
-        <div class="workspace">
-          <form id="bookmarkForm" class="card form-card" novalidate>
-            <h4 class="card-title">Tambah bookmark</h4>
-            <p class="card-subtitle">Simpan tautan yang sering kamu gunakan.</p>
-
-            <div class="field">
-              <label for="bookmarkName">Nama / judul</label>
-              <input class="input" id="bookmarkName" name="name" type="text" maxlength="80" placeholder="Contoh: MDN Web Docs">
-              <p class="form-error" id="bookmarkNameError"></p>
-            </div>
-            <div class="field">
-              <label for="bookmarkUrl">URL</label>
-              <input class="input" id="bookmarkUrl" name="url" type="url" placeholder="https://developer.mozilla.org">
-              <p class="form-error" id="bookmarkUrlError"></p>
-            </div>
-            <div class="field">
-              <label for="bookmarkCategory">Kategori / tag</label>
-              <input class="input" id="bookmarkCategory" name="category" maxlength="40" placeholder="Belajar">
-              <p class="form-error" id="bookmarkCategoryError"></p>
-            </div>
-            <div class="field">
-              <label for="bookmarkNote">Catatan <span style="font-weight:400;color:var(--muted)">(opsional)</span></label>
-              <textarea class="textarea" id="bookmarkNote" name="note" maxlength="180" placeholder="Kenapa link ini penting?"></textarea>
-              <p class="form-error" id="bookmarkNoteError"></p>
-            </div>
-            <button class="btn btn-primary" type="submit"><i data-lucide="bookmark-plus"></i> Simpan bookmark</button>
-          </form>
-
-          <div>
-            <div class="card toolbar">
-              <input class="input search" id="bookmarkSearch" type="search" placeholder="Cari nama, URL, atau kategori..." aria-label="Cari bookmark">
-              <select class="select" id="bookmarkSort" aria-label="Urutkan bookmark">
-                <option value="newest">Terbaru</option>
-                <option value="az">Judul A–Z</option>
-                <option value="za">Judul Z–A</option>
-              </select>
-              <button id="clearBookmarks" class="btn btn-ghost" type="button"><i data-lucide="trash-2"></i> Bersihkan</button>
-            </div>
-            <div id="bookmarkList" class="bookmark-grid"></div>
-          </div>
-        </div>
-      </section>
-
-      <!-- ================= QUIZ APP ================= -->
-      <section id="panel-quiz" class="panel" aria-labelledby="quiz-title">
-        <div class="section-head">
-          <div>
-            <h3 id="quiz-title">Kuis Interaktif</h3>
-            <p>Uji pemahamanmu tentang HTML, CSS, JavaScript, dan literasi web.</p>
-          </div>
-        </div>
-
-        <div class="quiz-wrap">
-          <div class="card quiz-card">
-            <div id="quizStart">
-              <div class="eyebrow"><i data-lucide="zap"></i> Ready to challenge?</div>
-              <h2 class="quiz-question" style="margin-top:18px">Seberapa kuat basic web development kamu?</h2>
-              <p style="color:var(--muted);font-size:13px;max-width:620px">Jawab 5 pertanyaan pilihan ganda. Setelah selesai, skor terbaikmu akan disimpan otomatis di browser.</p>
-              <div class="highscore"><i data-lucide="trophy"></i> High score: <span id="startHighScore">0 / 5</span></div>
-              <br>
-              <button class="btn btn-primary" id="startQuiz" type="button" style="width:auto"><i data-lucide="play"></i> Mulai kuis</button>
-            </div>
-
-            <div id="quizQuestionView" hidden>
-              <div class="quiz-top">
-                <div class="progress-wrap">
-                  <div class="progress-label"><span id="questionCounter">Soal 1 dari 5</span><span id="questionPercent">20%</span></div>
-                  <div class="progress"><div class="progress-bar" id="progressBar"></div></div>
-                </div>
-              </div>
-              <div class="quiz-question" id="quizQuestion"></div>
-              <div class="options" id="quizOptions"></div>
-              <div class="quiz-feedback" id="quizFeedback" hidden></div>
-              <div class="quiz-actions">
-                <button class="btn btn-ghost" id="resetQuiz" type="button"><i data-lucide="rotate-ccw"></i> Reset</button>
-                <button class="btn btn-primary" id="nextQuestion" type="button" disabled><span>Soal berikutnya</span><i data-lucide="arrow-right"></i></button>
-              </div>
-            </div>
-
-            <div id="quizResult" class="quiz-result" hidden>
-              <div class="score-circle" id="scoreCircle">0 / 5</div>
-              <h3 id="resultTitle">Kuis selesai!</h3>
-              <p id="resultDescription"></p>
-              <div class="highscore"><i data-lucide="trophy"></i> High score: <span id="resultHighScore">0 / 5</span></div>
-              <br>
-              <button class="btn btn-primary" id="restartQuiz" type="button" style="width:auto"><i data-lucide="refresh-cw"></i> Main lagi</button>
-            </div>
-          </div>
-        </div>
-      </section>
-    </main>
-
-    <footer>
-      NexaHub · Dibuat dengan HTML, CSS, JavaScript & localStorage · Data tetap di browser kamu.
-    </footer>
   </div>
+</header>
 
-  <!-- Generic modal for edit/delete -->
-  <div id="modalBackdrop" class="modal-backdrop" hidden aria-hidden="true">
-    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
-      <div class="modal-head">
-        <h3 id="modalTitle">Edit</h3>
-        <button class="close-btn" id="modalClose" type="button" aria-label="Tutup"><i data-lucide="x"></i></button>
+<!-- ============ MAIN CONTENT ============ -->
+<main class="max-w-5xl mx-auto w-full px-5 py-8 flex-1">
+
+  <!-- ===================== PANEL 1: EXPENSE TRACKER ===================== -->
+  <section id="panel-expense" data-panel aria-labelledby="tab-expense" class="flex flex-col gap-6">
+
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div class="rounded-2xl border border-line bg-white p-5">
+        <p class="text-xs font-medium text-ink/50">Pemasukan</p>
+        <p id="statIncome" class="font-display text-2xl font-semibold text-pine mt-1 tabular-nums">Rp 0</p>
       </div>
-      <div id="modalBody"></div>
+      <div class="rounded-2xl border border-line bg-white p-5">
+        <p class="text-xs font-medium text-ink/50">Pengeluaran</p>
+        <p id="statExpense" class="font-display text-2xl font-semibold text-rust mt-1 tabular-nums">Rp 0</p>
+      </div>
+      <div class="rounded-2xl border-2 border-ink bg-ink p-5">
+        <p class="text-xs font-medium text-paper/60">Saldo</p>
+        <p id="statBalance" class="font-display text-2xl font-semibold text-paper mt-1 tabular-nums">Rp 0</p>
+      </div>
+    </div>
+
+    <div class="flex flex-col lg:flex-row lg:items-center gap-3 justify-between">
+      <div class="flex flex-1 flex-wrap gap-2">
+        <input id="expenseSearch" type="text" placeholder="Cari judul transaksi…"
+          class="flex-1 min-w-[160px] rounded-lg border border-line bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-mango/60" />
+        <select id="expenseFilterType" class="rounded-lg border border-line bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-mango/60">
+          <option value="all">Semua Tipe</option>
+          <option value="Pemasukan">Pemasukan</option>
+          <option value="Pengeluaran">Pengeluaran</option>
+        </select>
+        <select id="expenseFilterCategory" class="rounded-lg border border-line bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-mango/60">
+          <option value="all">Semua Kategori</option>
+        </select>
+        <select id="expenseSort" class="rounded-lg border border-line bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-mango/60">
+          <option value="newest">Terbaru</option>
+          <option value="oldest">Terlama</option>
+          <option value="amount-desc">Jumlah Terbesar</option>
+          <option value="amount-asc">Jumlah Terkecil</option>
+        </select>
+      </div>
+      <button id="openExpenseModalBtn"
+        class="inline-flex items-center justify-center gap-2 rounded-lg bg-ink text-paper px-4 py-2.5 text-sm font-semibold hover:bg-mango hover:text-ink transition-colors whitespace-nowrap">
+        + Tambah Transaksi
+      </button>
+    </div>
+
+    <div>
+      <div id="expenseEmpty" class="hidden rounded-2xl border border-dashed border-line bg-white/50 py-14 text-center">
+        <p class="font-display text-lg">Belum ada transaksi</p>
+        <p class="text-sm text-ink/50 mt-1">Catatan pengeluaran dan pemasukanmu akan muncul di sini.</p>
+      </div>
+      <ul id="expenseList" class="flex flex-col gap-2"></ul>
+    </div>
+  </section>
+
+  <!-- ===================== PANEL 2: BOOKMARK MANAGER ===================== -->
+  <section id="panel-bookmark" data-panel aria-labelledby="tab-bookmark" class="hidden flex-col gap-6">
+
+    <div class="flex flex-col lg:flex-row lg:items-center gap-3 justify-between">
+      <div class="flex flex-1 flex-wrap gap-2">
+        <input id="bookmarkSearch" type="text" placeholder="Cari nama, URL, atau kategori…"
+          class="flex-1 min-w-[180px] rounded-lg border border-line bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-mango/60" />
+        <select id="bookmarkSort" class="rounded-lg border border-line bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-mango/60">
+          <option value="newest">Terbaru</option>
+          <option value="az">Judul A–Z</option>
+          <option value="za">Judul Z–A</option>
+        </select>
+      </div>
+      <button id="openBookmarkModalBtn"
+        class="inline-flex items-center justify-center gap-2 rounded-lg bg-ink text-paper px-4 py-2.5 text-sm font-semibold hover:bg-mango hover:text-ink transition-colors whitespace-nowrap">
+        + Tambah Tautan
+      </button>
+    </div>
+
+    <div>
+      <div id="bookmarkEmpty" class="hidden rounded-2xl border border-dashed border-line bg-white/50 py-14 text-center">
+        <p class="font-display text-lg">Belum ada tautan tersimpan</p>
+        <p class="text-sm text-ink/50 mt-1">Simpan situs favoritmu supaya mudah ditemukan lagi.</p>
+      </div>
+      <div id="bookmarkGrid" class="grid sm:grid-cols-2 gap-4"></div>
+    </div>
+  </section>
+
+  <!-- ===================== PANEL 3: QUIZ ===================== -->
+  <section id="panel-quiz" data-panel aria-labelledby="tab-quiz" class="hidden flex-col gap-6">
+
+    <!-- Start screen -->
+    <div id="quizStart" class="rounded-2xl border border-line bg-white p-8 text-center flex flex-col items-center gap-4">
+      <span class="inline-flex items-center gap-2 rounded-full bg-pinedim text-pine px-3 py-1 text-xs font-semibold">Dasar HTML, CSS &amp; JavaScript</span>
+      <h2 class="font-display text-2xl font-semibold">Seberapa siap kamu?</h2>
+      <p class="text-sm text-ink/60 max-w-sm">Enam pertanyaan singkat, dua puluh detik tiap soal. Jawab secepat dan setepat mungkin.</p>
+      <p class="text-sm text-ink/70">Skor tertinggi: <span id="quizHighScoreDisplay" class="font-semibold text-ink">0/6</span></p>
+      <button id="startQuizBtn" class="rounded-lg bg-ink text-paper px-6 py-3 text-sm font-semibold hover:bg-mango hover:text-ink transition-colors">Mulai Kuis</button>
+    </div>
+
+    <!-- Playing screen -->
+    <div id="quizPlay" class="hidden rounded-2xl border border-line bg-white p-6 sm:p-8 flex-col gap-5">
+      <div class="flex items-center justify-between text-xs font-medium text-ink/50">
+        <span id="quizProgressLabel">Soal 1 dari 6</span>
+        <span id="quizTimerLabel">20 dtk</span>
+      </div>
+      <div class="h-1.5 w-full rounded-full bg-paperdim overflow-hidden">
+        <div id="quizTimerBar" class="h-full bg-mango"></div>
+      </div>
+      <h3 id="quizQuestionText" class="font-display text-xl font-medium leading-snug"></h3>
+      <div id="quizOptions" class="grid sm:grid-cols-2 gap-3"></div>
+      <div class="flex justify-end">
+        <button id="quizNextBtn" class="hidden rounded-lg bg-ink text-paper px-5 py-2.5 text-sm font-semibold hover:bg-mango hover:text-ink transition-colors">Lanjut</button>
+      </div>
+    </div>
+
+    <!-- Result screen -->
+    <div id="quizResult" class="hidden rounded-2xl border border-line bg-white p-8 text-center flex-col items-center gap-3">
+      <p class="text-sm text-ink/50">Kuis selesai</p>
+      <p id="quizScoreDisplay" class="font-display text-4xl font-semibold">0/6</p>
+      <p id="quizHighScoreMsg" class="text-sm text-ink/70"></p>
+      <button id="restartQuizBtn" class="mt-2 rounded-lg bg-ink text-paper px-6 py-3 text-sm font-semibold hover:bg-mango hover:text-ink transition-colors">Main Lagi</button>
+    </div>
+  </section>
+</main>
+
+<footer class="border-t border-line">
+  <div class="max-w-5xl mx-auto px-5 py-6 text-xs text-ink/40 flex flex-col sm:flex-row gap-1 sm:gap-0 justify-between">
+    <span>Harian — proyek praktikum PABWE</span>
+    <span>Data tersimpan lokal di perangkatmu, tidak dikirim ke mana pun</span>
+  </div>
+</footer>
+
+<!-- ============ MODAL: EXPENSE ============ -->
+<div id="expenseModal" class="modal-shell hidden fixed inset-0 z-40 bg-ink/40 backdrop-blur-sm items-center justify-center p-4">
+  <div class="modal-card w-full max-w-md rounded-2xl bg-white p-6">
+    <div class="flex items-center justify-between mb-4">
+      <h3 id="expenseModalTitle" class="font-display text-lg font-semibold">Tambah Transaksi</h3>
+      <button type="button" data-close-modal="expenseModal" class="text-ink/40 hover:text-ink text-xl leading-none">&times;</button>
+    </div>
+    <form id="expenseForm" class="flex flex-col gap-3">
+      <input type="hidden" id="expenseIdInput" />
+      <div>
+        <label class="text-xs font-medium text-ink/60">Judul / Deskripsi</label>
+        <input id="expenseTitleInput" type="text" placeholder="Contoh: Makan siang"
+          class="mt-1 w-full rounded-lg border border-line px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-mango/60" />
+      </div>
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="text-xs font-medium text-ink/60">Tipe</label>
+          <select id="expenseTypeInput" class="mt-1 w-full rounded-lg border border-line px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-mango/60">
+            <option value="Pengeluaran">Pengeluaran</option>
+            <option value="Pemasukan">Pemasukan</option>
+          </select>
+        </div>
+        <div>
+          <label class="text-xs font-medium text-ink/60">Kategori</label>
+          <select id="expenseCategoryInput" class="mt-1 w-full rounded-lg border border-line px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-mango/60"></select>
+        </div>
+      </div>
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="text-xs font-medium text-ink/60">Jumlah (Rp)</label>
+          <input id="expenseAmountInput" type="number" min="1" step="1" placeholder="0"
+            class="mt-1 w-full rounded-lg border border-line px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-mango/60" />
+        </div>
+        <div>
+          <label class="text-xs font-medium text-ink/60">Tanggal</label>
+          <input id="expenseDateInput" type="date"
+            class="mt-1 w-full rounded-lg border border-line px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-mango/60" />
+        </div>
+      </div>
+      <p id="expenseFormError" class="hidden text-sm text-rust"></p>
+      <div class="flex justify-end gap-2 mt-2">
+        <button type="button" data-close-modal="expenseModal" class="rounded-lg border border-line px-4 py-2 text-sm font-semibold hover:bg-paperdim transition-colors">Batal</button>
+        <button type="submit" class="rounded-lg bg-ink text-paper px-4 py-2 text-sm font-semibold hover:bg-mango hover:text-ink transition-colors">Simpan</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ============ MODAL: BOOKMARK ============ -->
+<div id="bookmarkModal" class="modal-shell hidden fixed inset-0 z-40 bg-ink/40 backdrop-blur-sm items-center justify-center p-4">
+  <div class="modal-card w-full max-w-md rounded-2xl bg-white p-6">
+    <div class="flex items-center justify-between mb-4">
+      <h3 id="bookmarkModalTitle" class="font-display text-lg font-semibold">Tambah Tautan</h3>
+      <button type="button" data-close-modal="bookmarkModal" class="text-ink/40 hover:text-ink text-xl leading-none">&times;</button>
+    </div>
+    <form id="bookmarkForm" class="flex flex-col gap-3">
+      <input type="hidden" id="bookmarkIdInput" />
+      <div>
+        <label class="text-xs font-medium text-ink/60">Nama</label>
+        <input id="bookmarkNameInput" type="text" placeholder="Contoh: Dokumentasi MDN"
+          class="mt-1 w-full rounded-lg border border-line px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-mango/60" />
+      </div>
+      <div>
+        <label class="text-xs font-medium text-ink/60">URL</label>
+        <input id="bookmarkUrlInput" type="text" placeholder="https://…"
+          class="mt-1 w-full rounded-lg border border-line px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-mango/60" />
+      </div>
+      <div>
+        <label class="text-xs font-medium text-ink/60">Kategori / Tag</label>
+        <input id="bookmarkCategoryInput" type="text" placeholder="Contoh: Belajar, Kuliah, Hiburan"
+          class="mt-1 w-full rounded-lg border border-line px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-mango/60" />
+      </div>
+      <div>
+        <label class="text-xs font-medium text-ink/60">Catatan (opsional)</label>
+        <textarea id="bookmarkNoteInput" rows="2" placeholder="Catatan singkat…"
+          class="mt-1 w-full rounded-lg border border-line px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-mango/60"></textarea>
+      </div>
+      <p id="bookmarkFormError" class="hidden text-sm text-rust"></p>
+      <div class="flex justify-end gap-2 mt-2">
+        <button type="button" data-close-modal="bookmarkModal" class="rounded-lg border border-line px-4 py-2 text-sm font-semibold hover:bg-paperdim transition-colors">Batal</button>
+        <button type="submit" class="rounded-lg bg-ink text-paper px-4 py-2 text-sm font-semibold hover:bg-mango hover:text-ink transition-colors">Simpan</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ============ MODAL: CONFIRM DELETE (shared) ============ -->
+<div id="confirmModal" class="modal-shell hidden fixed inset-0 z-50 bg-ink/40 backdrop-blur-sm items-center justify-center p-4">
+  <div class="modal-card w-full max-w-sm rounded-2xl bg-white p-6 text-center">
+    <p class="font-display text-lg font-semibold mb-1">Hapus item ini?</p>
+    <p id="confirmModalText" class="text-sm text-ink/60 mb-5">Tindakan ini tidak bisa dibatalkan.</p>
+    <div class="flex justify-center gap-2">
+      <button type="button" data-close-modal="confirmModal" class="rounded-lg border border-line px-4 py-2 text-sm font-semibold hover:bg-paperdim transition-colors">Batal</button>
+      <button type="button" id="confirmDeleteBtn" class="rounded-lg bg-rust text-white px-4 py-2 text-sm font-semibold hover:bg-rust/90 transition-colors">Hapus</button>
     </div>
   </div>
+</div>
 
-  <div id="toast" class="toast" hidden>
-    <i data-lucide="check-circle-2"></i>
-    <span id="toastMessage"></span>
-  </div>
-
-  <script src="assets/script.js"></script>
-  <script>lucide.createIcons();</script>
+<script src="assets/script.js"></script>
 </body>
 </html>
