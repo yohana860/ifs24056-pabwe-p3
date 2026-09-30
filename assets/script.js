@@ -1,749 +1,845 @@
-/* =========================================================================
-   HARIAN — script.js
-   Tiga fitur dalam satu proyek: Expense Tracker, Bookmark Manager, Quiz App.
-   Dipisah per bagian dengan komentar. Semua data disimpan di localStorage
-   dengan key yang berbeda supaya tidak saling menimpa.
-   ========================================================================= */
+/* =========================================================
+   NEXAHUB — PABWE P3
+   Semua logika interaksi aplikasi berada di file ini.
+   ========================================================= */
 
-/* ============================ UTIL UMUM ============================ */
+"use strict";
 
-const LS_KEYS = {
-  EXPENSES: 'harian:expenses',
-  BOOKMARKS: 'harian:bookmarks',
-  HIGHSCORE: 'harian:highscore',
+/* ----------------------------- 
+   1. Konstanta & Helper
+------------------------------ */
+const STORAGE = {
+  expenses: "nexahub_expenses_v1",
+  bookmarks: "nexahub_bookmarks_v1",
+  highScore: "nexahub_quiz_highscore_v1",
+  activeTab: "nexahub_active_tab_v1"
 };
 
-const $ = (selector, scope = document) => scope.querySelector(selector);
-const $$ = (selector, scope = document) => [...scope.querySelectorAll(selector)];
+const $ = (selector, parent = document) => parent.querySelector(selector);
+const $$ = (selector, parent = document) => [...parent.querySelectorAll(selector)];
 
-function loadJSON(key, fallback) {
+const uid = (prefix = "id") =>
+  `${prefix}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+
+const loadJSON = (key, fallback = []) => {
   try {
     const raw = localStorage.getItem(key);
     return raw ? JSON.parse(raw) : fallback;
-  } catch (err) {
-    console.warn('Gagal membaca localStorage untuk', key, err);
+  } catch (error) {
+    console.error(`Gagal membaca ${key}:`, error);
     return fallback;
   }
-}
+};
 
-function saveJSON(key, value) {
+const saveJSON = (key, value) => {
   localStorage.setItem(key, JSON.stringify(value));
-}
-
-function uid() {
-  return Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
-}
-
-function formatRupiah(amount) {
-  return 'Rp ' + Number(amount || 0).toLocaleString('id-ID');
-}
-
-function formatDate(isoDate) {
-  if (!isoDate) return '-';
-  const d = new Date(isoDate + 'T00:00:00');
-  if (Number.isNaN(d.getTime())) return isoDate;
-  return d.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
-}
-
-function escapeHtml(str) {
-  const div = document.createElement('div');
-  div.textContent = str ?? '';
-  return div.innerHTML;
-}
-
-/* Ikon memakai Tabler Icons (webfont via CDN). Semua dikumpulkan di satu tempat
-   dan disisipkan lewat ICONS.* atau atribut data-icon di HTML. */
-const tabler = (name, size = 'text-base') =>
-  `<i class="ti ti-${name} ${size}" aria-hidden="true"></i>`;
-
-const ICONS = {
-  edit: () => tabler('pencil'),
-  trash: () => tabler('trash'),
-  wallet: () => tabler('wallet', 'text-lg'),
-  bookmark: () => tabler('bookmark', 'text-lg'),
-  target: () => tabler('target', 'text-lg'),
 };
 
-function injectIcons(scope = document) {
-  $$('[data-icon]', scope).forEach((el) => {
-    el.innerHTML = ICONS[el.dataset.icon]?.() ?? '';
-  });
-}
+const formatRupiah = (value) =>
+  new Intl.NumberFormat("id-ID", {
+    style: "currency",
+    currency: "IDR",
+    maximumFractionDigits: 0
+  }).format(Number(value) || 0);
 
-/* ---------------------- Validasi form (dipakai semua form) ---------------------- */
-/* rules: array of { ok: boolean, message: string } — mengembalikan pesan error pertama. */
-function firstError(rules) {
-  const failed = rules.find((rule) => !rule.ok);
-  return failed ? failed.message : null;
-}
+const escapeHTML = (value = "") =>
+  String(value)
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
 
-function showFormError(el, message) {
-  el.textContent = message;
-  el.classList.remove('hidden');
-}
-
-function iconBtn(icon, dataAttr, extraClasses = '') {
-  return `<button type="button" ${dataAttr} class="h-8 w-8 inline-flex items-center justify-center rounded-lg border border-line text-ink/50 hover:text-ink hover:border-ink/40 transition-colors ${extraClasses}">${icon}</button>`;
-}
-
-/* -------------------------- Modal helpers -------------------------- */
-
-function openModal(id) {
-  const el = document.getElementById(id);
-  el.classList.remove('hidden');
-  el.classList.add('flex');
-}
-
-function closeModal(id) {
-  const el = document.getElementById(id);
-  el.classList.add('hidden');
-  el.classList.remove('flex');
-}
-
-$$('[data-close-modal]').forEach((btn) => {
-  btn.addEventListener('click', () => closeModal(btn.dataset.closeModal));
-});
-
-$$('.modal-shell').forEach((shell) => {
-  shell.addEventListener('click', (e) => {
-    if (e.target === shell) closeModal(shell.id);
-  });
-});
-
-document.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape') {
-    $$('.modal-shell').forEach((shell) => {
-      if (!shell.classList.contains('hidden')) closeModal(shell.id);
-    });
-  }
-});
-
-/* Shared delete-confirmation modal, used by both Expense and Bookmark */
-let pendingDelete = null; // { type: 'expense' | 'bookmark', id }
-
-function askDelete(type, id, label) {
-  pendingDelete = { type, id };
-  $('#confirmModalText').textContent = label
-    ? `"${label}" akan dihapus permanen.`
-    : 'Tindakan ini tidak bisa dibatalkan.';
-  openModal('confirmModal');
-}
-
-$('#confirmDeleteBtn').addEventListener('click', () => {
-  if (!pendingDelete) return;
-  if (pendingDelete.type === 'expense') {
-    expenses = expenses.filter((item) => item.id !== pendingDelete.id);
-    saveJSON(LS_KEYS.EXPENSES, expenses);
-    renderExpenses();
-  } else if (pendingDelete.type === 'bookmark') {
-    bookmarks = bookmarks.filter((item) => item.id !== pendingDelete.id);
-    saveJSON(LS_KEYS.BOOKMARKS, bookmarks);
-    renderBookmarks();
-  }
-  pendingDelete = null;
-  closeModal('confirmModal');
-});
-
-/* ============================ TAB NAVIGATION ============================ */
-
-const panels = {
-  expense: $('#panel-expense'),
-  bookmark: $('#panel-bookmark'),
-  quiz: $('#panel-quiz'),
-};
-const tabIndicator = $('#tabIndicator');
-let currentTab = 'expense';
-
-function moveIndicator(name) {
-  const btn = $(`.tab-btn[data-tab="${name}"]`);
-  if (!btn) return;
-  tabIndicator.style.width = btn.offsetWidth + 'px';
-  tabIndicator.style.transform = `translateX(${btn.offsetLeft}px)`;
-}
-
-const VALID_TABS = Object.keys(panels);
-
-/* Tab aktif dibaca dari query string (?tab=expense|bookmark|quiz). */
-function getTabFromUrl() {
-  const tab = new URLSearchParams(window.location.search).get('tab');
-  return VALID_TABS.includes(tab) ? tab : 'expense';
-}
-
-/* Tulis pilihan tab ke URL tanpa menambah riwayat browser. */
-function syncTabToUrl(name) {
-  const params = new URLSearchParams(window.location.search);
-  params.set('tab', name);
-  history.replaceState(null, '', `${window.location.pathname}?${params.toString()}`);
-}
-
-function setActiveTab(name) {
-  currentTab = name;
-  $$('.tab-btn').forEach((btn) => {
-    const active = btn.dataset.tab === name;
-    btn.classList.toggle('text-ink', active);
-    btn.classList.toggle('text-ink/50', !active);
-    btn.setAttribute('aria-selected', String(active));
-  });
-  Object.entries(panels).forEach(([key, el]) => {
-    el.classList.toggle('hidden', key !== name);
-    el.classList.toggle('flex', key === name);
-  });
-  moveIndicator(name);
-  syncTabToUrl(name);
-  if (name === 'quiz') updateHighScoreDisplay();
-}
-
-$$('.tab-btn').forEach((btn) => {
-  btn.addEventListener('click', (e) => {
-    e.preventDefault();
-    setActiveTab(btn.dataset.tab);
-  });
-});
-
-window.addEventListener('resize', () => moveIndicator(currentTab));
-
-/* ============================ EXPENSE TRACKER ============================ */
-
-const CATEGORY_OPTIONS = {
-  Pemasukan: ['Uang Saku', 'Gaji', 'Beasiswa', 'Bonus', 'Lainnya'],
-  Pengeluaran: ['Makanan', 'Transportasi', 'Belanja', 'Hiburan', 'Pendidikan', 'Lainnya'],
+const formatDate = (dateString) => {
+  if (!dateString) return "-";
+  return new Intl.DateTimeFormat("id-ID", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric"
+  }).format(new Date(`${dateString}T00:00:00`));
 };
 
-let expenses = loadJSON(LS_KEYS.EXPENSES, []);
+const todayISO = () => {
+  const date = new Date();
+  const local = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
+  return local.toISOString().slice(0, 10);
+};
 
-const expenseSearch = $('#expenseSearch');
-const expenseFilterType = $('#expenseFilterType');
-const expenseFilterCategory = $('#expenseFilterCategory');
-const expenseSort = $('#expenseSort');
-const expenseList = $('#expenseList');
-const expenseEmpty = $('#expenseEmpty');
-
-const expenseModal = $('#expenseModal');
-const expenseForm = $('#expenseForm');
-const expenseModalTitle = $('#expenseModalTitle');
-const expenseIdInput = $('#expenseIdInput');
-const expenseTitleInput = $('#expenseTitleInput');
-const expenseTypeInput = $('#expenseTypeInput');
-const expenseCategoryInput = $('#expenseCategoryInput');
-const expenseAmountInput = $('#expenseAmountInput');
-const expenseDateInput = $('#expenseDateInput');
-const expenseFormError = $('#expenseFormError');
-
-function populateCategorySelect(selectEl, type, selectedValue) {
-  const options = CATEGORY_OPTIONS[type] || [];
-  selectEl.innerHTML = options
-    .map((cat) => `<option value="${cat}" ${cat === selectedValue ? 'selected' : ''}>${cat}</option>`)
-    .join('');
+function showToast(message) {
+  const toast = $("#toast");
+  $("#toastMessage").textContent = message;
+  toast.hidden = false;
+  clearTimeout(showToast.timer);
+  showToast.timer = setTimeout(() => { toast.hidden = true; }, 2600);
 }
 
-function populateFilterCategoryOnce() {
-  const all = [...new Set([...CATEGORY_OPTIONS.Pemasukan, ...CATEGORY_OPTIONS.Pengeluaran])].sort();
-  expenseFilterCategory.insertAdjacentHTML(
-    'beforeend',
-    all.map((cat) => `<option value="${cat}">${cat}</option>`).join('')
-  );
-}
-populateFilterCategoryOnce();
-
-expenseTypeInput.addEventListener('change', () => {
-  populateCategorySelect(expenseCategoryInput, expenseTypeInput.value);
-});
-
-function resetExpenseForm() {
-  expenseIdInput.value = '';
-  expenseTitleInput.value = '';
-  expenseTypeInput.value = 'Pengeluaran';
-  populateCategorySelect(expenseCategoryInput, 'Pengeluaran');
-  expenseAmountInput.value = '';
-  expenseDateInput.value = new Date().toISOString().slice(0, 10);
-  expenseFormError.classList.add('hidden');
+function setFieldError(input, message) {
+  const error = $(`#${input.id}Error`);
+  input.classList.toggle("invalid", Boolean(message));
+  if (error) error.textContent = message || "";
 }
 
-$('#openExpenseModalBtn').addEventListener('click', () => {
-  resetExpenseForm();
-  expenseModalTitle.textContent = 'Tambah Transaksi';
-  openModal('expenseModal');
-  expenseTitleInput.focus();
-});
+/* ----------------------------- 
+   2. Tab Navigation
+------------------------------ */
+const tabs = $$(".tab-btn");
+const panels = $$(".panel");
 
-expenseForm.addEventListener('submit', (e) => {
-  e.preventDefault();
-  const title = expenseTitleInput.value.trim();
-  const type = expenseTypeInput.value;
-  const category = expenseCategoryInput.value;
-  const amount = Number(expenseAmountInput.value);
-  const date = expenseDateInput.value;
+function activateTab(tabName) {
+  const allowed = ["expense", "bookmark", "quiz"];
+  const name = allowed.includes(tabName) ? tabName : "expense";
 
-  const error = firstError([
-    { ok: title !== '', message: 'Judul transaksi wajib diisi.' },
-    { ok: date !== '', message: 'Tanggal wajib diisi.' },
-    { ok: Number.isFinite(amount) && amount > 0, message: 'Jumlah harus berupa angka lebih dari 0.' },
-  ]);
-  if (error) return showFormError(expenseFormError, error);
-
-  const id = expenseIdInput.value;
-  if (id) {
-    const existing = expenses.find((item) => item.id === id);
-    if (existing) Object.assign(existing, { title, type, category, amount, date });
-  } else {
-    expenses.push({ id: uid(), title, type, category, amount, date, createdAt: Date.now() });
-  }
-
-  saveJSON(LS_KEYS.EXPENSES, expenses);
-  closeModal('expenseModal');
-  renderExpenses();
-});
-
-function openExpenseEdit(id) {
-  const item = expenses.find((e) => e.id === id);
-  if (!item) return;
-  expenseFormError.classList.add('hidden');
-  expenseModalTitle.textContent = 'Ubah Transaksi';
-  expenseIdInput.value = item.id;
-  expenseTitleInput.value = item.title;
-  expenseTypeInput.value = item.type;
-  populateCategorySelect(expenseCategoryInput, item.type, item.category);
-  expenseAmountInput.value = item.amount;
-  expenseDateInput.value = item.date;
-  openModal('expenseModal');
-}
-
-function getFilteredSortedExpenses() {
-  const q = expenseSearch.value.trim().toLowerCase();
-  const typeFilter = expenseFilterType.value;
-  const catFilter = expenseFilterCategory.value;
-  const sortMode = expenseSort.value;
-
-  let result = expenses.filter((item) => {
-    if (q && !item.title.toLowerCase().includes(q)) return false;
-    if (typeFilter !== 'all' && item.type !== typeFilter) return false;
-    if (catFilter !== 'all' && item.category !== catFilter) return false;
-    return true;
+  tabs.forEach((button) => {
+    const active = button.dataset.tab === name;
+    button.classList.toggle("active", active);
+    button.setAttribute("aria-selected", active ? "true" : "false");
   });
 
-  result.sort((a, b) => {
-    switch (sortMode) {
-      case 'oldest':
-        return a.date.localeCompare(b.date) || a.createdAt - b.createdAt;
-      case 'amount-desc':
-        return b.amount - a.amount;
-      case 'amount-asc':
-        return a.amount - b.amount;
-      case 'newest':
-      default:
-        return b.date.localeCompare(a.date) || b.createdAt - a.createdAt;
-    }
+  panels.forEach((panel) => {
+    panel.classList.toggle("active", panel.id === `panel-${name}`);
   });
 
-  return result;
+  localStorage.setItem(STORAGE.activeTab, name);
 }
 
-function renderExpenseStats() {
-  const income = expenses.filter((e) => e.type === 'Pemasukan').reduce((sum, e) => sum + e.amount, 0);
-  const expense = expenses.filter((e) => e.type === 'Pengeluaran').reduce((sum, e) => sum + e.amount, 0);
-  $('#statIncome').textContent = formatRupiah(income);
-  $('#statExpense').textContent = formatRupiah(expense);
-  $('#statBalance').textContent = formatRupiah(income - expense);
+tabs.forEach((button) => {
+  button.addEventListener("click", () => activateTab(button.dataset.tab));
+});
+
+/* ----------------------------- 
+   3. Expense Tracker
+------------------------------ */
+let expenses = loadJSON(STORAGE.expenses, []);
+
+const expenseForm = $("#expenseForm");
+const expenseList = $("#expenseList");
+
+$("#expenseDate").value = todayISO();
+
+function validateExpenseForm() {
+  const title = $("#expenseTitle");
+  const category = $("#expenseCategory");
+  const amount = $("#expenseAmount");
+  const date = $("#expenseDate");
+
+  let valid = true;
+
+  if (!title.value.trim()) {
+    setFieldError(title, "Judul wajib diisi.");
+    valid = false;
+  } else setFieldError(title, "");
+
+  if (!category.value) {
+    setFieldError(category, "Pilih kategori.");
+    valid = false;
+  } else setFieldError(category, "");
+
+  if (!amount.value || Number(amount.value) <= 0 || !Number.isFinite(Number(amount.value))) {
+    setFieldError(amount, "Jumlah harus berupa angka lebih dari 0.");
+    valid = false;
+  } else setFieldError(amount, "");
+
+  if (!date.value) {
+    setFieldError(date, "Tanggal wajib diisi.");
+    valid = false;
+  } else setFieldError(date, "");
+
+  return valid;
+}
+
+function updateExpenseSummary() {
+  const income = expenses
+    .filter((item) => item.type === "income")
+    .reduce((sum, item) => sum + Number(item.amount), 0);
+
+  const expense = expenses
+    .filter((item) => item.type === "expense")
+    .reduce((sum, item) => sum + Number(item.amount), 0);
+
+  $("#totalIncome").textContent = formatRupiah(income);
+  $("#totalExpense").textContent = formatRupiah(expense);
+  $("#balance").textContent = formatRupiah(income - expense);
+}
+
+function getFilteredExpenses() {
+  const query = $("#expenseSearch").value.trim().toLowerCase();
+  const type = $("#expenseFilterType").value;
+  const sort = $("#expenseSort").value;
+
+  const filtered = expenses.filter((item) => {
+    const matchesQuery = item.title.toLowerCase().includes(query);
+    const matchesType = type === "all" || item.type === type;
+    return matchesQuery && matchesType;
+  });
+
+  filtered.sort((a, b) => {
+    if (sort === "newest") return new Date(b.date) - new Date(a.date);
+    if (sort === "oldest") return new Date(a.date) - new Date(b.date);
+    if (sort === "highest") return Number(b.amount) - Number(a.amount);
+    if (sort === "lowest") return Number(a.amount) - Number(b.amount);
+    return 0;
+  });
+
+  return filtered;
 }
 
 function renderExpenses() {
-  renderExpenseStats();
-  const items = getFilteredSortedExpenses();
+  updateExpenseSummary();
+  updateActivityCount();
 
-  if (expenses.length === 0) {
-    expenseEmpty.classList.remove('hidden');
-    expenseList.innerHTML = '';
+  const filtered = getFilteredExpenses();
+
+  if (!filtered.length) {
+    expenseList.innerHTML = `
+      <div class="empty">
+        <div class="empty-icon"><i data-lucide="receipt-text"></i></div>
+        <h4>${expenses.length ? "Tidak ada transaksi yang cocok" : "Belum ada transaksi"}</h4>
+        <p>${expenses.length ? "Coba ubah kata pencarian atau filter yang digunakan." : "Tambahkan transaksi pertamamu melalui formulir di sebelah kiri."}</p>
+      </div>
+    `;
+    lucide.createIcons();
     return;
   }
-  expenseEmpty.classList.add('hidden');
 
-  if (items.length === 0) {
-    expenseList.innerHTML = `<li class="text-center text-sm text-ink/40 py-10">Tidak ada transaksi yang cocok dengan pencarian/filter.</li>`;
-    return;
-  }
-
-  expenseList.innerHTML = items
-    .map((item) => {
-      const isIncome = item.type === 'Pemasukan';
-      return `
-      <li class="flex items-center justify-between gap-4 rounded-xl border border-line bg-white px-4 py-3">
-        <div class="flex items-center gap-3 min-w-0">
-          <span class="shrink-0 h-9 w-9 rounded-full flex items-center justify-center text-xs font-semibold ${
-            isIncome ? 'bg-pinedim text-pine' : 'bg-rustdim text-rust'
-          }">${isIncome ? '+' : '-'}</span>
-          <div class="min-w-0">
-            <p class="text-sm font-semibold truncate">${escapeHtml(item.title)}</p>
-            <div class="flex items-center gap-2 mt-0.5">
-              <span class="text-[11px] font-medium rounded-full bg-paperdim px-2 py-0.5 text-ink/60">${escapeHtml(item.category)}</span>
-              <span class="text-xs text-ink/40">${formatDate(item.date)}</span>
-            </div>
+  expenseList.innerHTML = filtered.map((item) => `
+    <article class="item">
+      <div class="item-main">
+        <div>
+          <h4 class="item-title">${escapeHTML(item.title)}</h4>
+          <div class="item-meta">
+            <span class="badge ${item.type === "income" ? "badge-income" : "badge-expense"}">
+              ${item.type === "income" ? "Pemasukan" : "Pengeluaran"}
+            </span>
+            <span class="badge">${escapeHTML(item.category)}</span>
+            <span>${formatDate(item.date)}</span>
           </div>
         </div>
-        <div class="flex items-center gap-2 shrink-0">
-          <span class="text-sm font-semibold tabular-nums ${isIncome ? 'text-pine' : 'text-rust'}">${
-        isIncome ? '+' : '-'
-      } ${formatRupiah(item.amount)}</span>
-          ${iconBtn(ICONS.edit(), `data-edit-expense="${item.id}"`)}
-          ${iconBtn(ICONS.trash(), `data-delete-expense="${item.id}"`, 'hover:!border-rust hover:!text-rust')}
+        <div class="amount ${item.type}">
+          ${item.type === "income" ? "+" : "-"} ${formatRupiah(item.amount)}
         </div>
-      </li>`;
-    })
-    .join('');
+      </div>
+      <div class="item-actions">
+        <button class="btn btn-soft btn-sm" data-action="edit-expense" data-id="${item.id}" type="button">
+          <i data-lucide="pencil"></i> Ubah
+        </button>
+        <button class="btn btn-danger btn-sm" data-action="delete-expense" data-id="${item.id}" type="button">
+          <i data-lucide="trash-2"></i> Hapus
+        </button>
+      </div>
+    </article>
+  `).join("");
 
-  $$('[data-edit-expense]', expenseList).forEach((btn) =>
-    btn.addEventListener('click', () => openExpenseEdit(btn.dataset.editExpense))
-  );
-  $$('[data-delete-expense]', expenseList).forEach((btn) =>
-    btn.addEventListener('click', () => {
-      const item = expenses.find((e) => e.id === btn.dataset.deleteExpense);
-      askDelete('expense', btn.dataset.deleteExpense, item?.title);
-    })
-  );
+  lucide.createIcons();
 }
 
-[expenseSearch].forEach((el) => el.addEventListener('input', renderExpenses));
-[expenseFilterType, expenseFilterCategory, expenseSort].forEach((el) =>
-  el.addEventListener('change', renderExpenses)
-);
+expenseForm.addEventListener("submit", (event) => {
+  event.preventDefault();
+  if (!validateExpenseForm()) return;
 
-/* ============================ BOOKMARK MANAGER ============================ */
+  const item = {
+    id: uid("exp"),
+    title: $("#expenseTitle").value.trim(),
+    category: $("#expenseCategory").value,
+    amount: Number($("#expenseAmount").value),
+    type: $("#expenseType").value,
+    date: $("#expenseDate").value,
+    createdAt: Date.now()
+  };
 
-let bookmarks = loadJSON(LS_KEYS.BOOKMARKS, []);
+  expenses.push(item);
+  saveJSON(STORAGE.expenses, expenses);
+  expenseForm.reset();
+  $("#expenseDate").value = todayISO();
 
-const bookmarkSearch = $('#bookmarkSearch');
-const bookmarkSort = $('#bookmarkSort');
-const bookmarkGrid = $('#bookmarkGrid');
-const bookmarkEmpty = $('#bookmarkEmpty');
-
-const bookmarkModal = $('#bookmarkModal');
-const bookmarkForm = $('#bookmarkForm');
-const bookmarkModalTitle = $('#bookmarkModalTitle');
-const bookmarkIdInput = $('#bookmarkIdInput');
-const bookmarkNameInput = $('#bookmarkNameInput');
-const bookmarkUrlInput = $('#bookmarkUrlInput');
-const bookmarkCategoryInput = $('#bookmarkCategoryInput');
-const bookmarkNoteInput = $('#bookmarkNoteInput');
-const bookmarkFormError = $('#bookmarkFormError');
-
-function isValidUrl(value) {
-  return /^https?:\/\/.+/i.test(value.trim());
-}
-
-function resetBookmarkForm() {
-  bookmarkIdInput.value = '';
-  bookmarkNameInput.value = '';
-  bookmarkUrlInput.value = '';
-  bookmarkCategoryInput.value = '';
-  bookmarkNoteInput.value = '';
-  bookmarkFormError.classList.add('hidden');
-}
-
-$('#openBookmarkModalBtn').addEventListener('click', () => {
-  resetBookmarkForm();
-  bookmarkModalTitle.textContent = 'Tambah Tautan';
-  openModal('bookmarkModal');
-  bookmarkNameInput.focus();
+  renderExpenses();
+  showToast("Transaksi berhasil disimpan.");
 });
 
-bookmarkForm.addEventListener('submit', (e) => {
-  e.preventDefault();
-  const name = bookmarkNameInput.value.trim();
-  const url = bookmarkUrlInput.value.trim();
-  const category = bookmarkCategoryInput.value.trim();
-  const note = bookmarkNoteInput.value.trim();
+["input", "change"].forEach((eventName) => {
+  ["#expenseSearch", "#expenseFilterType", "#expenseSort"].forEach((selector) => {
+    $(selector).addEventListener(eventName, renderExpenses);
+  });
+});
 
-  const error = firstError([
-    { ok: name !== '', message: 'Nama tautan wajib diisi.' },
-    { ok: isValidUrl(url), message: 'URL harus diawali http:// atau https://' },
-    { ok: category !== '', message: 'Kategori/tag wajib diisi.' },
-  ]);
-  if (error) return showFormError(bookmarkFormError, error);
+expenseList.addEventListener("click", (event) => {
+  const button = event.target.closest("button[data-action]");
+  if (!button) return;
 
-  const id = bookmarkIdInput.value;
-  if (id) {
-    const existing = bookmarks.find((item) => item.id === id);
-    if (existing) Object.assign(existing, { name, url, category, note });
-  } else {
-    bookmarks.push({ id: uid(), name, url, category, note, createdAt: Date.now() });
+  const { action, id } = button.dataset;
+
+  if (action === "edit-expense") openExpenseEditModal(id);
+  if (action === "delete-expense") openDeleteModal("expense", id);
+});
+
+/* ----------------------------- 
+   4. Bookmark Manager
+------------------------------ */
+let bookmarks = loadJSON(STORAGE.bookmarks, []);
+
+const bookmarkForm = $("#bookmarkForm");
+const bookmarkList = $("#bookmarkList");
+
+function isValidURL(value) {
+  try {
+    const url = new URL(value.trim());
+    return url.protocol === "http:" || url.protocol === "https:";
+  } catch {
+    return false;
   }
-
-  saveJSON(LS_KEYS.BOOKMARKS, bookmarks);
-  closeModal('bookmarkModal');
-  renderBookmarks();
-});
-
-function openBookmarkEdit(id) {
-  const item = bookmarks.find((b) => b.id === id);
-  if (!item) return;
-  bookmarkFormError.classList.add('hidden');
-  bookmarkModalTitle.textContent = 'Ubah Tautan';
-  bookmarkIdInput.value = item.id;
-  bookmarkNameInput.value = item.name;
-  bookmarkUrlInput.value = item.url;
-  bookmarkCategoryInput.value = item.category;
-  bookmarkNoteInput.value = item.note || '';
-  openModal('bookmarkModal');
 }
 
-function getFilteredSortedBookmarks() {
-  const q = bookmarkSearch.value.trim().toLowerCase();
-  const sortMode = bookmarkSort.value;
+function validateBookmarkForm() {
+  const name = $("#bookmarkName");
+  const url = $("#bookmarkUrl");
+  const category = $("#bookmarkCategory");
 
-  let result = bookmarks.filter((item) => {
-    if (!q) return true;
-    return (
-      item.name.toLowerCase().includes(q) ||
-      item.url.toLowerCase().includes(q) ||
-      item.category.toLowerCase().includes(q)
-    );
+  let valid = true;
+
+  if (!name.value.trim()) {
+    setFieldError(name, "Nama bookmark wajib diisi.");
+    valid = false;
+  } else setFieldError(name, "");
+
+  if (!isValidURL(url.value)) {
+    setFieldError(url, "URL harus diawali http:// atau https://.");
+    valid = false;
+  } else setFieldError(url, "");
+
+  if (!category.value.trim()) {
+    setFieldError(category, "Kategori wajib diisi.");
+    valid = false;
+  } else setFieldError(category, "");
+
+  return valid;
+}
+
+function getFilteredBookmarks() {
+  const query = $("#bookmarkSearch").value.trim().toLowerCase();
+  const sort = $("#bookmarkSort").value;
+
+  const filtered = bookmarks.filter((item) => {
+    const searchable = `${item.name} ${item.url} ${item.category}`.toLowerCase();
+    return searchable.includes(query);
   });
 
-  result.sort((a, b) => {
-    switch (sortMode) {
-      case 'az':
-        return a.name.localeCompare(b.name);
-      case 'za':
-        return b.name.localeCompare(a.name);
-      case 'newest':
-      default:
-        return b.createdAt - a.createdAt;
-    }
+  filtered.sort((a, b) => {
+    if (sort === "az") return a.name.localeCompare(b.name, "id");
+    if (sort === "za") return b.name.localeCompare(a.name, "id");
+    return b.createdAt - a.createdAt;
   });
 
-  return result;
+  return filtered;
 }
 
 function renderBookmarks() {
-  const items = getFilteredSortedBookmarks();
+  updateActivityCount();
+  const filtered = getFilteredBookmarks();
 
-  if (bookmarks.length === 0) {
-    bookmarkEmpty.classList.remove('hidden');
-    bookmarkGrid.innerHTML = '';
+  if (!filtered.length) {
+    bookmarkList.innerHTML = `
+      <div class="empty" style="grid-column:1/-1">
+        <div class="empty-icon"><i data-lucide="bookmark-x"></i></div>
+        <h4>${bookmarks.length ? "Bookmark tidak ditemukan" : "Belum ada bookmark"}</h4>
+        <p>${bookmarks.length ? "Coba kata pencarian lain." : "Simpan link pentingmu melalui formulir di sebelah kiri."}</p>
+      </div>
+    `;
+    lucide.createIcons();
     return;
   }
-  bookmarkEmpty.classList.add('hidden');
 
-  if (items.length === 0) {
-    bookmarkGrid.innerHTML = `<p class="col-span-full text-center text-sm text-ink/40 py-10">Tidak ada tautan yang cocok dengan pencarian.</p>`;
-    return;
-  }
-
-  bookmarkGrid.innerHTML = items
-    .map(
-      (item) => `
-      <div class="rounded-2xl border border-line bg-white p-4 flex flex-col gap-2">
-        <div class="flex items-start justify-between gap-2">
-          <div class="min-w-0">
-            <a href="${escapeHtml(item.url)}" target="_blank" rel="noopener noreferrer"
-               class="text-sm font-semibold hover:text-mangodark truncate block">${escapeHtml(item.name)}</a>
-            <a href="${escapeHtml(item.url)}" target="_blank" rel="noopener noreferrer"
-               class="text-xs text-ink/40 hover:text-ink/60 truncate block">${escapeHtml(item.url)}</a>
-          </div>
-          <div class="flex items-center gap-2 shrink-0">
-            ${iconBtn(ICONS.edit(), `data-edit-bookmark="${item.id}"`)}
-            ${iconBtn(ICONS.trash(), `data-delete-bookmark="${item.id}"`, 'hover:!border-rust hover:!text-rust')}
+  bookmarkList.innerHTML = filtered.map((item) => {
+    const initial = escapeHTML(item.name.trim().charAt(0) || "W");
+    return `
+      <article class="bookmark-card">
+        <div class="bookmark-top">
+          <div class="site-icon">${initial}</div>
+          <div style="min-width:0;flex:1">
+            <h4>${escapeHTML(item.name)}</h4>
+            <a class="bookmark-url" href="${escapeHTML(item.url)}" target="_blank" rel="noopener noreferrer">
+              ${escapeHTML(item.url)}
+            </a>
           </div>
         </div>
-        <span class="text-[11px] font-medium rounded-full bg-paperdim px-2 py-0.5 text-ink/60 w-fit">${escapeHtml(item.category)}</span>
-        ${item.note ? `<p class="text-xs text-ink/50">${escapeHtml(item.note)}</p>` : ''}
-      </div>`
-    )
-    .join('');
+        <div class="item-meta">
+          <span class="badge badge-primary">${escapeHTML(item.category)}</span>
+          <span>${formatDate(new Date(item.createdAt).toISOString().slice(0, 10))}</span>
+        </div>
+        ${item.note ? `<p class="bookmark-note">${escapeHTML(item.note)}</p>` : ""}
+        <div class="item-actions">
+          <button class="btn btn-soft btn-sm" data-action="edit-bookmark" data-id="${item.id}" type="button">
+            <i data-lucide="pencil"></i> Ubah
+          </button>
+          <button class="btn btn-danger btn-sm" data-action="delete-bookmark" data-id="${item.id}" type="button">
+            <i data-lucide="trash-2"></i> Hapus
+          </button>
+        </div>
+      </article>
+    `;
+  }).join("");
 
-  $$('[data-edit-bookmark]', bookmarkGrid).forEach((btn) =>
-    btn.addEventListener('click', () => openBookmarkEdit(btn.dataset.editBookmark))
-  );
-  $$('[data-delete-bookmark]', bookmarkGrid).forEach((btn) =>
-    btn.addEventListener('click', () => {
-      const item = bookmarks.find((b) => b.id === btn.dataset.deleteBookmark);
-      askDelete('bookmark', btn.dataset.deleteBookmark, item?.name);
-    })
-  );
+  lucide.createIcons();
 }
 
-[bookmarkSearch, bookmarkSort].forEach((el) => {
-  const evt = el === bookmarkSearch ? 'input' : 'change';
-  el.addEventListener(evt, renderBookmarks);
+bookmarkForm.addEventListener("submit", (event) => {
+  event.preventDefault();
+  if (!validateBookmarkForm()) return;
+
+  const item = {
+    id: uid("bm"),
+    name: $("#bookmarkName").value.trim(),
+    url: $("#bookmarkUrl").value.trim(),
+    category: $("#bookmarkCategory").value.trim(),
+    note: $("#bookmarkNote").value.trim(),
+    createdAt: Date.now()
+  };
+
+  bookmarks.push(item);
+  saveJSON(STORAGE.bookmarks, bookmarks);
+  bookmarkForm.reset();
+
+  renderBookmarks();
+  showToast("Bookmark berhasil disimpan.");
 });
 
-/* ============================ QUIZ APP ============================ */
+["input", "change"].forEach((eventName) => {
+  ["#bookmarkSearch", "#bookmarkSort"].forEach((selector) => {
+    $(selector).addEventListener(eventName, renderBookmarks);
+  });
+});
 
-const QUESTIONS = [
+bookmarkList.addEventListener("click", (event) => {
+  const button = event.target.closest("button[data-action]");
+  if (!button) return;
+
+  const { action, id } = button.dataset;
+
+  if (action === "edit-bookmark") openBookmarkEditModal(id);
+  if (action === "delete-bookmark") openDeleteModal("bookmark", id);
+});
+
+$("#clearBookmarks").addEventListener("click", () => {
+  if (!bookmarks.length) {
+    showToast("Belum ada bookmark untuk dibersihkan.");
+    return;
+  }
+  openDeleteModal("all-bookmarks", null);
+});
+
+/* ----------------------------- 
+   5. Quiz App
+------------------------------ */
+const questions = [
   {
-    q: 'Tag HTML apa yang digunakan untuk membuat tautan ke halaman lain?',
-    options: ['<link>', '<a>', '<href>', '<nav>'],
-    correct: 1,
+    question: "Tag HTML apa yang paling tepat untuk membuat tautan?",
+    options: ["<link>", "<a>", "<href>", "<url>"],
+    answer: 1
   },
   {
-    q: 'Properti CSS apa yang mengatur jarak di dalam elemen, antara konten dan border?',
-    options: ['margin', 'padding', 'gap', 'border-spacing'],
-    correct: 1,
+    question: "Properti CSS apa yang digunakan untuk mengubah warna teks?",
+    options: ["font-color", "text-color", "color", "foreground"],
+    answer: 2
   },
   {
-    q: 'Method array JavaScript mana yang menghasilkan array baru berisi elemen yang lolos suatu kondisi?',
-    options: ['map()', 'forEach()', 'filter()', 'reduce()'],
-    correct: 2,
+    question: "Method JavaScript mana yang digunakan untuk menambahkan item ke akhir array?",
+    options: ["push()", "add()", "append()", "insert()"],
+    answer: 0
   },
   {
-    q: 'Cara yang benar untuk menyimpan data ke localStorage adalah…',
-    options: ['localStorage.save(key, value)', 'localStorage.setItem(key, value)', 'localStorage.put(key, value)', 'localStorage.add(key, value)'],
-    correct: 1,
+    question: "Web Storage API yang dapat menyimpan data setelah browser ditutup adalah...",
+    options: ["sessionStorage", "localStorage", "tempStorage", "cookieStorage"],
+    answer: 1
   },
   {
-    q: 'Selector CSS mana yang digunakan untuk memilih elemen berdasarkan class?',
-    options: ['#nama', '.nama', '*nama', '&nama'],
-    correct: 1,
+    question: "Manakah yang merupakan selector DOM yang valid?",
+    options: ["querySelector()", "selectDOM()", "getElement()", "findNode()"],
+    answer: 0
   },
   {
-    q: 'Apa kegunaan JSON.parse() dalam JavaScript?',
-    options: [
-      'Mengubah objek JavaScript menjadi teks',
-      'Mengubah teks JSON menjadi objek/array JavaScript',
-      'Menghapus data dari localStorage',
-      'Memformat tampilan angka',
-    ],
-    correct: 1,
-  },
+    question: "Atribut HTML yang membuat link dibuka pada tab baru adalah...",
+    options: ["new-tab", "target='_blank'", "open='new'", "tab='blank'"],
+    answer: 1
+  }
 ];
 
-const QUESTION_TIME = 20;
+let quizState = {
+  index: 0,
+  score: 0,
+  answered: false
+};
 
-const quizStart = $('#quizStart');
-const quizPlay = $('#quizPlay');
-const quizResult = $('#quizResult');
-const quizProgressLabel = $('#quizProgressLabel');
-const quizTimerLabel = $('#quizTimerLabel');
-const quizTimerBar = $('#quizTimerBar');
-const quizQuestionText = $('#quizQuestionText');
-const quizOptions = $('#quizOptions');
-const quizNextBtn = $('#quizNextBtn');
-const quizScoreDisplay = $('#quizScoreDisplay');
-const quizHighScoreMsg = $('#quizHighScoreMsg');
+const highScore = () => Number(localStorage.getItem(STORAGE.highScore)) || 0;
 
-let quizState = { index: 0, score: 0, timeLeft: QUESTION_TIME, answered: false, timer: null };
-
-function updateHighScoreDisplay() {
-  const hs = Number(localStorage.getItem(LS_KEYS.HIGHSCORE) || 0);
-  $('#quizHighScoreDisplay').textContent = `${hs}/${QUESTIONS.length}`;
+function updateHighScoreUI() {
+  const value = `${highScore()} / ${questions.length}`;
+  $("#startHighScore").textContent = value;
+  $("#resultHighScore").textContent = value;
 }
 
-function showQuizScreen(name) {
-  quizStart.classList.toggle('hidden', name !== 'start');
-  quizStart.classList.toggle('flex', name === 'start');
-  quizPlay.classList.toggle('hidden', name !== 'play');
-  quizPlay.classList.toggle('flex', name === 'play');
-  quizResult.classList.toggle('hidden', name !== 'result');
-  quizResult.classList.toggle('flex', name === 'result');
+function startQuiz() {
+  quizState = { index: 0, score: 0, answered: false };
+  $("#quizStart").hidden = true;
+  $("#quizResult").hidden = true;
+  $("#quizQuestionView").hidden = false;
+  renderQuestion();
 }
 
-$('#startQuizBtn').addEventListener('click', () => {
-  quizState = { index: 0, score: 0, timeLeft: QUESTION_TIME, answered: false, timer: null };
-  showQuizScreen('play');
-  loadQuestion(0);
+function renderQuestion() {
+  const current = questions[quizState.index];
+  const number = quizState.index + 1;
+  const percent = Math.round((number / questions.length) * 100);
+
+  quizState.answered = false;
+  $("#questionCounter").textContent = `Soal ${number} dari ${questions.length}`;
+  $("#questionPercent").textContent = `${percent}%`;
+  $("#progressBar").style.width = `${percent}%`;
+  $("#quizQuestion").textContent = current.question;
+  $("#quizFeedback").hidden = true;
+  $("#nextQuestion").disabled = true;
+
+  $("#quizOptions").innerHTML = current.options.map((option, index) => `
+    <button class="option" data-option="${index}" type="button">
+      <span class="option-key">${String.fromCharCode(65 + index)}</span>
+      <span>${escapeHTML(option)}</span>
+    </button>
+  `).join("");
+
+  lucide.createIcons();
+}
+
+$("#quizOptions").addEventListener("click", (event) => {
+  const option = event.target.closest(".option");
+  if (!option || quizState.answered) return;
+
+  quizState.answered = true;
+
+  const selected = Number(option.dataset.option);
+  const correct = questions[quizState.index].answer;
+  const options = $$(".option");
+
+  options.forEach((button) => {
+    button.disabled = true;
+    const value = Number(button.dataset.option);
+    if (value === correct) button.classList.add("correct");
+    if (value === selected && selected !== correct) button.classList.add("wrong");
+  });
+
+  if (selected === correct) {
+    quizState.score += 1;
+    $("#quizFeedback").innerHTML = `<strong>Benar!</strong> Jawabanmu tepat.`;
+  } else {
+    $("#quizFeedback").innerHTML = `<strong>Belum tepat.</strong> Jawaban yang benar adalah <strong>${escapeHTML(questions[quizState.index].options[correct])}</strong>.`;
+  }
+
+  $("#quizFeedback").hidden = false;
+  $("#nextQuestion").disabled = false;
 });
 
-function loadQuestion(index) {
-  if (index >= QUESTIONS.length) return finishQuiz();
+$("#nextQuestion").addEventListener("click", () => {
+  if (!quizState.answered) return;
 
-  quizState.index = index;
-  quizState.answered = false;
-  quizState.timeLeft = QUESTION_TIME;
-
-  quizProgressLabel.textContent = `Soal ${index + 1} dari ${QUESTIONS.length}`;
-  quizQuestionText.textContent = QUESTIONS[index].q;
-  quizNextBtn.classList.add('hidden');
-
-  quizOptions.innerHTML = QUESTIONS[index].options
-    .map(
-      (opt, i) =>
-        `<button type="button" data-index="${i}" class="quiz-option text-left rounded-xl border border-line px-4 py-3 text-sm hover:border-mango transition-colors">${escapeHtml(
-          opt
-        )}</button>`
-    )
-    .join('');
-
-  $$('.quiz-option', quizOptions).forEach((btn) =>
-    btn.addEventListener('click', () => selectAnswer(Number(btn.dataset.index)))
-  );
-
-  startTimer();
-}
-
-function startTimer() {
-  clearInterval(quizState.timer);
-  updateTimerUI();
-  quizState.timer = setInterval(() => {
-    quizState.timeLeft -= 1;
-    updateTimerUI();
-    if (quizState.timeLeft <= 0) {
-      clearInterval(quizState.timer);
-      autoTimeout();
-    }
-  }, 1000);
-}
-
-function updateTimerUI() {
-  quizTimerLabel.textContent = `${quizState.timeLeft} dtk`;
-  quizTimerBar.style.width = `${(quizState.timeLeft / QUESTION_TIME) * 100}%`;
-}
-
-function selectAnswer(idx) {
-  if (quizState.answered) return;
-  quizState.answered = true;
-  clearInterval(quizState.timer);
-
-  const correct = QUESTIONS[quizState.index].correct;
-  $$('.quiz-option', quizOptions).forEach((btn) => {
-    const bi = Number(btn.dataset.index);
-    btn.disabled = true;
-    if (bi === correct) btn.dataset.state = 'correct';
-    else if (bi === idx) btn.dataset.state = 'wrong';
-  });
-
-  if (idx === correct) quizState.score += 1;
-  quizNextBtn.classList.remove('hidden');
-}
-
-function autoTimeout() {
-  if (quizState.answered) return;
-  quizState.answered = true;
-  const correct = QUESTIONS[quizState.index].correct;
-  $$('.quiz-option', quizOptions).forEach((btn) => {
-    btn.disabled = true;
-    if (Number(btn.dataset.index) === correct) btn.dataset.state = 'reveal';
-  });
-  quizNextBtn.classList.remove('hidden');
-}
-
-quizNextBtn.addEventListener('click', () => loadQuestion(quizState.index + 1));
+  if (quizState.index < questions.length - 1) {
+    quizState.index += 1;
+    renderQuestion();
+  } else {
+    finishQuiz();
+  }
+});
 
 function finishQuiz() {
-  showQuizScreen('result');
-  quizScoreDisplay.textContent = `${quizState.score}/${QUESTIONS.length}`;
+  const score = quizState.score;
+  const currentHigh = highScore();
 
-  const hs = Number(localStorage.getItem(LS_KEYS.HIGHSCORE) || 0);
-  if (quizState.score > hs) {
-    localStorage.setItem(LS_KEYS.HIGHSCORE, String(quizState.score));
-    quizHighScoreMsg.textContent = 'Rekor baru! Skor tertinggi diperbarui.';
-  } else {
-    quizHighScoreMsg.textContent = `Skor tertinggi tetap ${hs}/${QUESTIONS.length}.`;
+  if (score > currentHigh) {
+    localStorage.setItem(STORAGE.highScore, String(score));
   }
-  updateHighScoreDisplay();
+
+  $("#quizQuestionView").hidden = true;
+  $("#quizResult").hidden = false;
+  $("#scoreCircle").textContent = `${score} / ${questions.length}`;
+  $("#resultTitle").textContent = score === questions.length ? "Perfect score! 🎉" : "Kuis selesai!";
+  $("#resultDescription").textContent =
+    score === questions.length
+      ? "Semua jawaban benar. Keren, pemahaman dasarmu sangat solid."
+      : `Kamu menjawab ${score} dari ${questions.length} soal dengan benar. Coba lagi untuk meningkatkan skor terbaikmu.`;
+
+  updateHighScoreUI();
+  showToast(score > currentHigh ? "High score baru! 🏆" : "Kuis selesai. Good job!");
 }
 
-$('#restartQuizBtn').addEventListener('click', () => showQuizScreen('start'));
+$("#startQuiz").addEventListener("click", startQuiz);
+$("#restartQuiz").addEventListener("click", startQuiz);
+$("#resetQuiz").addEventListener("click", () => {
+  $("#quizQuestionView").hidden = true;
+  $("#quizResult").hidden = true;
+  $("#quizStart").hidden = false;
+  updateHighScoreUI();
+});
 
-/* ============================ INIT ============================ */
+/* ----------------------------- 
+   6. Modal CRUD
+------------------------------ */
+const modalBackdrop = $("#modalBackdrop");
+const modalBody = $("#modalBody");
 
-function init() {
-  injectIcons();
+function openModal(title, bodyHTML) {
+  $("#modalTitle").textContent = title;
+  modalBody.innerHTML = bodyHTML;
+  modalBackdrop.hidden = false;
+  modalBackdrop.setAttribute("aria-hidden", "false");
+  document.body.style.overflow = "hidden";
+  lucide.createIcons();
+}
+
+function closeModal() {
+  modalBackdrop.hidden = true;
+  modalBackdrop.setAttribute("aria-hidden", "true");
+  document.body.style.overflow = "";
+}
+
+$("#modalClose").addEventListener("click", closeModal);
+modalBackdrop.addEventListener("click", (event) => {
+  if (event.target === modalBackdrop) closeModal();
+});
+document.addEventListener("keydown", (event) => {
+  if (event.key === "Escape" && !modalBackdrop.hidden) closeModal();
+});
+
+function openExpenseEditModal(id) {
+  const item = expenses.find((entry) => entry.id === id);
+  if (!item) return;
+
+  openModal("Ubah transaksi", `
+    <form id="editExpenseForm" novalidate>
+      <div class="field">
+        <label for="editExpenseTitle">Judul / deskripsi</label>
+        <input class="input" id="editExpenseTitle" value="${escapeHTML(item.title)}">
+        <p class="form-error" id="editExpenseTitleError"></p>
+      </div>
+      <div class="field">
+        <label for="editExpenseCategory">Kategori</label>
+        <select class="select" id="editExpenseCategory">
+          ${["Makanan","Transportasi","Belanja","Tagihan","Hiburan","Pendidikan","Lainnya"].map((cat) =>
+            `<option ${cat === item.category ? "selected" : ""}>${cat}</option>`).join("")}
+        </select>
+      </div>
+      <div class="field">
+        <label for="editExpenseAmount">Jumlah (Rp)</label>
+        <input class="input" id="editExpenseAmount" type="number" min="1" value="${Number(item.amount)}">
+        <p class="form-error" id="editExpenseAmountError"></p>
+      </div>
+      <div class="field">
+        <label for="editExpenseType">Tipe</label>
+        <select class="select" id="editExpenseType">
+          <option value="expense" ${item.type === "expense" ? "selected" : ""}>Pengeluaran</option>
+          <option value="income" ${item.type === "income" ? "selected" : ""}>Pemasukan</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="editExpenseDate">Tanggal</label>
+        <input class="input" id="editExpenseDate" type="date" value="${escapeHTML(item.date)}">
+        <p class="form-error" id="editExpenseDateError"></p>
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-ghost" type="button" data-close-modal>Batal</button>
+        <button class="btn btn-primary" style="width:auto" type="submit"><i data-lucide="save"></i> Simpan perubahan</button>
+      </div>
+    </form>
+  `);
+
+  $("#editExpenseForm").addEventListener("submit", (event) => {
+    event.preventDefault();
+
+    const title = $("#editExpenseTitle");
+    const amount = $("#editExpenseAmount");
+    const date = $("#editExpenseDate");
+    let valid = true;
+
+    if (!title.value.trim()) {
+      $("#editExpenseTitleError").textContent = "Judul wajib diisi.";
+      title.classList.add("invalid");
+      valid = false;
+    } else {
+      $("#editExpenseTitleError").textContent = "";
+      title.classList.remove("invalid");
+    }
+
+    if (!amount.value || Number(amount.value) <= 0) {
+      $("#editExpenseAmountError").textContent = "Jumlah harus lebih dari 0.";
+      amount.classList.add("invalid");
+      valid = false;
+    } else {
+      $("#editExpenseAmountError").textContent = "";
+      amount.classList.remove("invalid");
+    }
+
+    if (!date.value) {
+      $("#editExpenseDateError").textContent = "Tanggal wajib diisi.";
+      date.classList.add("invalid");
+      valid = false;
+    } else {
+      $("#editExpenseDateError").textContent = "";
+      date.classList.remove("invalid");
+    }
+
+    if (!valid) return;
+
+    Object.assign(item, {
+      title: title.value.trim(),
+      category: $("#editExpenseCategory").value,
+      amount: Number(amount.value),
+      type: $("#editExpenseType").value,
+      date: date.value
+    });
+
+    saveJSON(STORAGE.expenses, expenses);
+    renderExpenses();
+    closeModal();
+    showToast("Transaksi berhasil diperbarui.");
+  });
+
+  $$("[data-close-modal]").forEach((button) => button.addEventListener("click", closeModal));
+}
+
+function openBookmarkEditModal(id) {
+  const item = bookmarks.find((entry) => entry.id === id);
+  if (!item) return;
+
+  openModal("Ubah bookmark", `
+    <form id="editBookmarkForm" novalidate>
+      <div class="field">
+        <label for="editBookmarkName">Nama / judul</label>
+        <input class="input" id="editBookmarkName" value="${escapeHTML(item.name)}">
+        <p class="form-error" id="editBookmarkNameError"></p>
+      </div>
+      <div class="field">
+        <label for="editBookmarkUrl">URL</label>
+        <input class="input" id="editBookmarkUrl" type="url" value="${escapeHTML(item.url)}">
+        <p class="form-error" id="editBookmarkUrlError"></p>
+      </div>
+      <div class="field">
+        <label for="editBookmarkCategory">Kategori / tag</label>
+        <input class="input" id="editBookmarkCategory" value="${escapeHTML(item.category)}">
+        <p class="form-error" id="editBookmarkCategoryError"></p>
+      </div>
+      <div class="field">
+        <label for="editBookmarkNote">Catatan</label>
+        <textarea class="textarea" id="editBookmarkNote">${escapeHTML(item.note || "")}</textarea>
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-ghost" type="button" data-close-modal>Batal</button>
+        <button class="btn btn-primary" style="width:auto" type="submit"><i data-lucide="save"></i> Simpan perubahan</button>
+      </div>
+    </form>
+  `);
+
+  $("#editBookmarkForm").addEventListener("submit", (event) => {
+    event.preventDefault();
+
+    const name = $("#editBookmarkName");
+    const url = $("#editBookmarkUrl");
+    const category = $("#editBookmarkCategory");
+    let valid = true;
+
+    if (!name.value.trim()) {
+      $("#editBookmarkNameError").textContent = "Nama wajib diisi.";
+      name.classList.add("invalid");
+      valid = false;
+    } else {
+      $("#editBookmarkNameError").textContent = "";
+      name.classList.remove("invalid");
+    }
+
+    if (!isValidURL(url.value)) {
+      $("#editBookmarkUrlError").textContent = "URL harus diawali http:// atau https://.";
+      url.classList.add("invalid");
+      valid = false;
+    } else {
+      $("#editBookmarkUrlError").textContent = "";
+      url.classList.remove("invalid");
+    }
+
+    if (!category.value.trim()) {
+      $("#editBookmarkCategoryError").textContent = "Kategori wajib diisi.";
+      category.classList.add("invalid");
+      valid = false;
+    } else {
+      $("#editBookmarkCategoryError").textContent = "";
+      category.classList.remove("invalid");
+    }
+
+    if (!valid) return;
+
+    Object.assign(item, {
+      name: name.value.trim(),
+      url: url.value.trim(),
+      category: category.value.trim(),
+      note: $("#editBookmarkNote").value.trim()
+    });
+
+    saveJSON(STORAGE.bookmarks, bookmarks);
+    renderBookmarks();
+    closeModal();
+    showToast("Bookmark berhasil diperbarui.");
+  });
+
+  $$("[data-close-modal]").forEach((button) => button.addEventListener("click", closeModal));
+}
+
+function openDeleteModal(type, id) {
+  const isAll = type === "all-bookmarks";
+  const title = isAll ? "Bersihkan semua bookmark?" : "Hapus item?";
+  const description = isAll
+    ? "Semua bookmark yang tersimpan akan dihapus dari browser dan tidak dapat dikembalikan."
+    : "Item yang dipilih akan dihapus dari penyimpanan lokal.";
+
+  openModal(title, `
+    <p style="color:var(--muted);font-size:13px;margin:0 0 18px">${description}</p>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" type="button" data-close-modal>Batal</button>
+      <button class="btn btn-danger" type="button" id="confirmDelete"><i data-lucide="trash-2"></i> Hapus</button>
+    </div>
+  `);
+
+  $("#confirmDelete").addEventListener("click", () => {
+    if (type === "expense") {
+      expenses = expenses.filter((item) => item.id !== id);
+      saveJSON(STORAGE.expenses, expenses);
+      renderExpenses();
+      showToast("Transaksi dihapus.");
+    } else if (type === "bookmark") {
+      bookmarks = bookmarks.filter((item) => item.id !== id);
+      saveJSON(STORAGE.bookmarks, bookmarks);
+      renderBookmarks();
+      showToast("Bookmark dihapus.");
+    } else {
+      bookmarks = [];
+      saveJSON(STORAGE.bookmarks, bookmarks);
+      renderBookmarks();
+      showToast("Semua bookmark berhasil dibersihkan.");
+    }
+    closeModal();
+  });
+
+  $$("[data-close-modal]").forEach((button) => button.addEventListener("click", closeModal));
+}
+
+/* ----------------------------- 
+   7. UI Count & Initial State
+------------------------------ */
+function updateActivityCount() {
+  $("#activityCount").textContent = expenses.length + bookmarks.length;
+}
+
+function initialize() {
   renderExpenses();
   renderBookmarks();
-  updateHighScoreDisplay();
+  updateHighScoreUI();
+  updateActivityCount();
 
-  setActiveTab(getTabFromUrl());
-  // Hitung ulang posisi indikator setelah font/layout selesai dimuat.
-  window.addEventListener('load', () => moveIndicator(currentTab));
+  const savedTab = localStorage.getItem(STORAGE.activeTab);
+  activateTab(savedTab || "expense");
+
+  lucide.createIcons();
 }
 
-init();
+initialize();
