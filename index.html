@@ -18,9 +18,9 @@
       --surface: #ffffff;
       --surface-soft: #f8f9fc;
       --text: #172033;
-      --muted: #59616f;
+      --muted: #6f7890;
       --border: #e7eaf1;
-      --primary: #635bff;
+      --primary: #5148d9;
       --primary-dark: #5048e5;
       --primary-soft: #efeeff;
       --success: #12a36a;
@@ -735,16 +735,6 @@
       .quiz-actions { flex-direction: column-reverse; }
       .quiz-actions .btn { width: 100%; }
     }
-    /* =========================================================
-       Accessibility — WCAG 2 AA contrast overrides
-       These selectors cover the Tailwind-style text-ink classes
-       reported by Axe in the deployed UI.
-       ========================================================= */
-    .text-ink\/60 { color: #4f5551 !important; }
-    .text-ink\/50 { color: #555b57 !important; }
-    .text-ink\/40 { color: #555b57 !important; }
-    .text-ink\/30 { color: #555b57 !important; }
-
   </style>
 </head>
 
@@ -779,21 +769,21 @@
       </div>
     </section>
 
-    <nav class="tabs" aria-label="Navigasi fitur">
-      <button class="tab-btn active" data-tab="expense" aria-selected="true">
+    <nav class="tabs" role="tablist" aria-label="Navigasi fitur">
+      <button class="tab-btn active" type="button" role="tab" aria-selected="true" aria-controls="panel-expense" data-tab="expense">
         <i data-lucide="wallet"></i><span>Pengeluaran</span>
       </button>
-      <button class="tab-btn" data-tab="bookmark" aria-selected="false">
+      <button class="tab-btn" type="button" role="tab" aria-selected="false" aria-controls="panel-bookmark" data-tab="bookmark">
         <i data-lucide="bookmark"></i><span>Bookmark</span>
       </button>
-      <button class="tab-btn" data-tab="quiz" aria-selected="false">
+      <button class="tab-btn" type="button" role="tab" aria-selected="false" aria-controls="panel-quiz" data-tab="quiz">
         <i data-lucide="brain"></i><span>Kuis</span>
       </button>
     </nav>
 
     <main>
       <!-- ================= EXPENSE TRACKER ================= -->
-      <section id="panel-expense" class="panel active" aria-labelledby="expense-title">
+      <section id="panel-expense" class="panel active" role="tabpanel" aria-labelledby="expense-title">
         <div class="section-head">
           <div>
             <h3 id="expense-title">Catatan Pengeluaran</h3>
@@ -877,7 +867,7 @@
       </section>
 
       <!-- ================= BOOKMARK MANAGER ================= -->
-      <section id="panel-bookmark" class="panel" aria-labelledby="bookmark-title">
+      <section id="panel-bookmark" class="panel" role="tabpanel" aria-labelledby="bookmark-title">
         <div class="section-head">
           <div>
             <h3 id="bookmark-title">Bookmark Manager</h3>
@@ -929,7 +919,7 @@
       </section>
 
       <!-- ================= QUIZ APP ================= -->
-      <section id="panel-quiz" class="panel" aria-labelledby="quiz-title">
+      <section id="panel-quiz" class="panel" role="tabpanel" aria-labelledby="quiz-title">
         <div class="section-head">
           <div>
             <h3 id="quiz-title">Kuis Interaktif</h3>
