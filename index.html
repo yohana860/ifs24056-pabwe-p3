@@ -740,255 +740,93 @@
 
 <body>
   <div class="app-shell">
+
     <header class="topbar">
-      <div class="brand">
-        <div class="brand-mark" aria-hidden="true"><i data-lucide="layers-3"></i></div>
-        <div>
-          <h1>NexaHub</h1>
-          <p>Simple tools. Better everyday.</p>
-        </div>
-      </div>
-      <div class="status-pill">
-        <span class="status-dot"></span>
-        Semua data tersimpan lokal
-      </div>
+      <!-- isi header kamu -->
     </header>
 
-    <section class="hero" aria-label="Pengantar aplikasi">
-      <div class="hero-card">
-        <span class="eyebrow"><i data-lucide="sparkles"></i> Productivity Hub</span>
-        <h2>Kelola hal penting, <span>tanpa terasa ribet.</span></h2>
-        <p>Satu tempat untuk mencatat keuangan, menyimpan tautan favorit, dan menguji pengetahuanmu. Cepat, bersih, dan tetap privat di browser.</p>
-      </div>
-      <div class="insight-card">
-        <div>
-          <div class="insight-label">AKTIVITAS TERSIMPAN</div>
-          <div class="insight-value" id="activityCount">0</div>
-        </div>
-        <div class="insight-note">Item yang tersimpan di Expense & Bookmark</div>
-      </div>
-    </section>
-
-    <nav class="tabs" role="tablist" aria-label="Navigasi fitur">
-      <button class="tab-btn active" type="button" role="tab" aria-selected="true" aria-controls="panel-expense" data-tab="expense">
-        <i data-lucide="wallet"></i><span>Pengeluaran</span>
-      </button>
-      <button class="tab-btn" type="button" role="tab" aria-selected="false" aria-controls="panel-bookmark" data-tab="bookmark">
-        <i data-lucide="bookmark"></i><span>Bookmark</span>
-      </button>
-      <button class="tab-btn" type="button" role="tab" aria-selected="false" aria-controls="panel-quiz" data-tab="quiz">
-        <i data-lucide="brain"></i><span>Kuis</span>
-      </button>
-    </nav>
-
     <main>
-      <!-- ================= EXPENSE TRACKER ================= -->
-      <section id="panel-expense" class="panel active" role="tabpanel" aria-labelledby="expense-title">
-        <div class="section-head">
-          <div>
-            <h3 id="expense-title">Catatan Pengeluaran</h3>
-            <p>Kelola pemasukan dan pengeluaran harian dengan lebih teratur.</p>
-          </div>
-        </div>
 
-        <div class="stats">
-          <article class="stat income">
-            <div class="stat-top"><span>Total pemasukan</span><span class="stat-icon"><i data-lucide="trending-up"></i></span></div>
-            <div class="stat-value" id="totalIncome">Rp0</div>
-          </article>
-          <article class="stat expense">
-            <div class="stat-top"><span>Total pengeluaran</span><span class="stat-icon"><i data-lucide="trending-down"></i></span></div>
-            <div class="stat-value" id="totalExpense">Rp0</div>
-          </article>
-          <article class="stat balance">
-            <div class="stat-top"><span>Saldo</span><span class="stat-icon"><i data-lucide="wallet-cards"></i></span></div>
-            <div class="stat-value" id="balance">Rp0</div>
-          </article>
-        </div>
-
-        <div class="workspace">
-          <form id="expenseForm" class="card form-card" novalidate>
-            <h4 class="card-title">Tambah transaksi</h4>
-            <p class="card-subtitle">Catat transaksi baru untuk hari ini.</p>
-
-            <div class="field">
-              <label for="expenseTitle">Judul / deskripsi</label>
-              <input class="input" id="expenseTitle" name="title" type="text" maxlength="80" placeholder="Contoh: Makan siang">
-              <p class="form-error" id="expenseTitleError"></p>
-            </div>
-            <div class="field">
-              <label for="expenseCategory">Kategori</label>
-              <select class="select" id="expenseCategory" name="category">
-                <option value="">Pilih kategori</option>
-                <option>Makanan</option><option>Transportasi</option><option>Belanja</option>
-                <option>Tagihan</option><option>Hiburan</option><option>Pendidikan</option><option>Lainnya</option>
-              </select>
-              <p class="form-error" id="expenseCategoryError"></p>
-            </div>
-            <div class="field">
-              <label for="expenseAmount">Jumlah (Rp)</label>
-              <input class="input" id="expenseAmount" name="amount" type="number" min="1" step="1" placeholder="50000">
-              <p class="form-error" id="expenseAmountError"></p>
-            </div>
-            <div class="field">
-              <label for="expenseType">Tipe</label>
-              <select class="select" id="expenseType" name="type">
-                <option value="expense">Pengeluaran</option>
-                <option value="income">Pemasukan</option>
-              </select>
-              <p class="form-error" id="expenseTypeError"></p>
-            </div>
-            <div class="field">
-              <label for="expenseDate">Tanggal</label>
-              <input class="input" id="expenseDate" name="date" type="date">
-              <p class="form-error" id="expenseDateError"></p>
-            </div>
-            <button class="btn btn-primary" type="submit"><i data-lucide="plus"></i> Simpan transaksi</button>
-          </form>
-
-          <div>
-            <div class="card toolbar">
-              <input class="input search" id="expenseSearch" type="search" placeholder="Cari judul transaksi..." aria-label="Cari transaksi">
-              <select class="select" id="expenseFilterType" aria-label="Filter tipe">
-                <option value="all">Semua tipe</option>
-                <option value="income">Pemasukan</option>
-                <option value="expense">Pengeluaran</option>
-              </select>
-              <select class="select" id="expenseSort" aria-label="Urutkan transaksi">
-                <option value="newest">Terbaru</option>
-                <option value="oldest">Terlama</option>
-                <option value="highest">Jumlah terbesar</option>
-                <option value="lowest">Jumlah terkecil</option>
-              </select>
-            </div>
-            <div id="expenseList" class="items"></div>
-          </div>
-        </div>
+      <section class="hero" aria-label="Pengantar aplikasi">
+        <!-- isi hero kamu -->
       </section>
 
-      <!-- ================= BOOKMARK MANAGER ================= -->
-      <section id="panel-bookmark" class="panel" role="tabpanel" aria-labelledby="bookmark-title">
-        <div class="section-head">
-          <div>
-            <h3 id="bookmark-title">Bookmark Manager</h3>
-            <p>Simpan website penting agar selalu mudah ditemukan.</p>
-          </div>
-        </div>
+      <nav class="tabs" role="tablist" aria-label="Navigasi fitur">
 
-        <div class="workspace">
-          <form id="bookmarkForm" class="card form-card" novalidate>
-            <h4 class="card-title">Tambah bookmark</h4>
-            <p class="card-subtitle">Simpan tautan yang sering kamu gunakan.</p>
+        <button
+          class="tab-btn active"
+          type="button"
+          role="tab"
+          aria-selected="true"
+          aria-controls="panel-expense"
+          data-tab="expense"
+        >
+          <i data-lucide="wallet"></i>
+          <span>Pengeluaran</span>
+        </button>
 
-            <div class="field">
-              <label for="bookmarkName">Nama / judul</label>
-              <input class="input" id="bookmarkName" name="name" type="text" maxlength="80" placeholder="Contoh: MDN Web Docs">
-              <p class="form-error" id="bookmarkNameError"></p>
-            </div>
-            <div class="field">
-              <label for="bookmarkUrl">URL</label>
-              <input class="input" id="bookmarkUrl" name="url" type="url" placeholder="https://developer.mozilla.org">
-              <p class="form-error" id="bookmarkUrlError"></p>
-            </div>
-            <div class="field">
-              <label for="bookmarkCategory">Kategori / tag</label>
-              <input class="input" id="bookmarkCategory" name="category" maxlength="40" placeholder="Belajar">
-              <p class="form-error" id="bookmarkCategoryError"></p>
-            </div>
-            <div class="field">
-              <label for="bookmarkNote">Catatan <span style="font-weight:400;color:var(--muted)">(opsional)</span></label>
-              <textarea class="textarea" id="bookmarkNote" name="note" maxlength="180" placeholder="Kenapa link ini penting?"></textarea>
-              <p class="form-error" id="bookmarkNoteError"></p>
-            </div>
-            <button class="btn btn-primary" type="submit"><i data-lucide="bookmark-plus"></i> Simpan bookmark</button>
-          </form>
+        <button
+          class="tab-btn"
+          type="button"
+          role="tab"
+          aria-selected="false"
+          aria-controls="panel-bookmark"
+          data-tab="bookmark"
+        >
+          <i data-lucide="bookmark"></i>
+          <span>Bookmark</span>
+        </button>
 
-          <div>
-            <div class="card toolbar">
-              <input class="input search" id="bookmarkSearch" type="search" placeholder="Cari nama, URL, atau kategori..." aria-label="Cari bookmark">
-              <select class="select" id="bookmarkSort" aria-label="Urutkan bookmark">
-                <option value="newest">Terbaru</option>
-                <option value="az">Judul A–Z</option>
-                <option value="za">Judul Z–A</option>
-              </select>
-              <button id="clearBookmarks" class="btn btn-ghost" type="button"><i data-lucide="trash-2"></i> Bersihkan</button>
-            </div>
-            <div id="bookmarkList" class="bookmark-grid"></div>
-          </div>
-        </div>
+        <button
+          class="tab-btn"
+          type="button"
+          role="tab"
+          aria-selected="false"
+          aria-controls="panel-quiz"
+          data-tab="quiz"
+        >
+          <i data-lucide="brain"></i>
+          <span>Kuis</span>
+        </button>
+
+      </nav>
+
+      <section
+        id="panel-expense"
+        class="panel active"
+        role="tabpanel"
+        aria-labelledby="expense-title"
+      >
+        <!-- isi panel expense kamu -->
       </section>
 
-      <!-- ================= QUIZ APP ================= -->
-      <section id="panel-quiz" class="panel" role="tabpanel" aria-labelledby="quiz-title">
-        <div class="section-head">
-          <div>
-            <h3 id="quiz-title">Kuis Interaktif</h3>
-            <p>Uji pemahamanmu tentang HTML, CSS, JavaScript, dan literasi web.</p>
-          </div>
-        </div>
-
-        <div class="quiz-wrap">
-          <div class="card quiz-card">
-            <div id="quizStart">
-              <div class="eyebrow"><i data-lucide="zap"></i> Ready to challenge?</div>
-              <h2 class="quiz-question" style="margin-top:18px">Seberapa kuat basic web development kamu?</h2>
-              <p style="color:var(--muted);font-size:13px;max-width:620px">Jawab 5 pertanyaan pilihan ganda. Setelah selesai, skor terbaikmu akan disimpan otomatis di browser.</p>
-              <div class="highscore"><i data-lucide="trophy"></i> High score: <span id="startHighScore">0 / 5</span></div>
-              <br>
-              <button class="btn btn-primary" id="startQuiz" type="button" style="width:auto"><i data-lucide="play"></i> Mulai kuis</button>
-            </div>
-
-            <div id="quizQuestionView" hidden>
-              <div class="quiz-top">
-                <div class="progress-wrap">
-                  <div class="progress-label"><span id="questionCounter">Soal 1 dari 5</span><span id="questionPercent">20%</span></div>
-                  <div class="progress"><div class="progress-bar" id="progressBar"></div></div>
-                </div>
-              </div>
-              <div class="quiz-question" id="quizQuestion"></div>
-              <div class="options" id="quizOptions"></div>
-              <div class="quiz-feedback" id="quizFeedback" hidden></div>
-              <div class="quiz-actions">
-                <button class="btn btn-ghost" id="resetQuiz" type="button"><i data-lucide="rotate-ccw"></i> Reset</button>
-                <button class="btn btn-primary" id="nextQuestion" type="button" disabled><span>Soal berikutnya</span><i data-lucide="arrow-right"></i></button>
-              </div>
-            </div>
-
-            <div id="quizResult" class="quiz-result" hidden>
-              <div class="score-circle" id="scoreCircle">0 / 5</div>
-              <h3 id="resultTitle">Kuis selesai!</h3>
-              <p id="resultDescription"></p>
-              <div class="highscore"><i data-lucide="trophy"></i> High score: <span id="resultHighScore">0 / 5</span></div>
-              <br>
-              <button class="btn btn-primary" id="restartQuiz" type="button" style="width:auto"><i data-lucide="refresh-cw"></i> Main lagi</button>
-            </div>
-          </div>
-        </div>
+      <section
+        id="panel-bookmark"
+        class="panel"
+        role="tabpanel"
+      >
+        <!-- isi panel bookmark kamu -->
       </section>
+
+      <section
+        id="panel-quiz"
+        class="panel"
+        role="tabpanel"
+      >
+        <!-- isi panel quiz kamu -->
+      </section>
+
     </main>
 
     <footer>
       NexaHub · Dibuat dengan HTML, CSS, JavaScript & localStorage · Data tetap di browser kamu.
     </footer>
-  </div>
 
-  <!-- Generic modal for edit/delete -->
-  <div id="modalBackdrop" class="modal-backdrop" hidden aria-hidden="true">
-    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
-      <div class="modal-head">
-        <h3 id="modalTitle">Edit</h3>
-        <button class="close-btn" id="modalClose" type="button" aria-label="Tutup"><i data-lucide="x"></i></button>
-      </div>
-      <div id="modalBody"></div>
-    </div>
-  </div>
-
-  <div id="toast" class="toast" hidden>
-    <i data-lucide="check-circle-2"></i>
-    <span id="toastMessage"></span>
   </div>
 
   <script src="assets/script.js"></script>
-  <script>lucide.createIcons();</script>
+  <script>
+    lucide.createIcons();
+  </script>
 </body>
 </html>
