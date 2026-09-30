@@ -1,7 +1,3 @@
-/* =========================================================
-   NEXAHUB — PABWE P3
-   Semua logika interaksi aplikasi berada di file ini.
-   ========================================================= */
 
 "use strict";
 
