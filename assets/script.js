@@ -1,4 +1,3 @@
-
 "use strict";
 
 /* ----------------------------- 
@@ -7,8 +6,7 @@
 const STORAGE = {
   expenses: "nexahub_expenses_v1",
   bookmarks: "nexahub_bookmarks_v1",
-  highScore: "nexahub_quiz_highscore_v1",
-  activeTab: "nexahub_active_tab_v1"
+  highScore: "nexahub_quiz_highscore_v1"
 };
 
 const $ = (selector, parent = document) => parent.querySelector(selector);
@@ -77,13 +75,26 @@ function setFieldError(input, message) {
 
 /* ----------------------------- 
    2. Tab Navigation
+   Tab aktif disimpan di query string (?tab=expense|bookmark|quiz),
+   bukan localStorage, supaya bisa dipulihkan lewat URL/refresh dan dibagikan.
 ------------------------------ */
 const tabs = $$(".tab-btn");
 const panels = $$(".panel");
+const VALID_TABS = ["expense", "bookmark", "quiz"];
+
+function getTabFromUrl() {
+  const tab = new URLSearchParams(window.location.search).get("tab");
+  return VALID_TABS.includes(tab) ? tab : "expense";
+}
+
+function syncTabToUrl(name) {
+  const params = new URLSearchParams(window.location.search);
+  params.set("tab", name);
+  history.replaceState(null, "", `${window.location.pathname}?${params.toString()}`);
+}
 
 function activateTab(tabName) {
-  const allowed = ["expense", "bookmark", "quiz"];
-  const name = allowed.includes(tabName) ? tabName : "expense";
+  const name = VALID_TABS.includes(tabName) ? tabName : "expense";
 
   tabs.forEach((button) => {
     const active = button.dataset.tab === name;
@@ -95,7 +106,7 @@ function activateTab(tabName) {
     panel.classList.toggle("active", panel.id === `panel-${name}`);
   });
 
-  localStorage.setItem(STORAGE.activeTab, name);
+  syncTabToUrl(name);
 }
 
 tabs.forEach((button) => {
@@ -832,8 +843,7 @@ function initialize() {
   updateHighScoreUI();
   updateActivityCount();
 
-  const savedTab = localStorage.getItem(STORAGE.activeTab);
-  activateTab(savedTab || "expense");
+  activateTab(getTabFromUrl());
 
   lucide.createIcons();
 }

@@ -18,7 +18,7 @@
       --surface: #ffffff;
       --surface-soft: #f8f9fc;
       --text: #172033;
-      --muted: #6f7890;
+      --muted: #626c87;
       --border: #e7eaf1;
       --primary: #5148d9;
       --primary-dark: #5048e5;
@@ -53,6 +53,16 @@
     button { cursor: pointer; }
     a { color: inherit; }
     [hidden] { display: none !important; }
+
+    .visually-hidden {
+      position: absolute;
+      width: 1px; height: 1px;
+      padding: 0; margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
 
     .app-shell {
       width: min(1240px, calc(100% - 32px));
@@ -156,6 +166,7 @@
       text-transform: uppercase;
       letter-spacing: .07em;
     }
+    .eyebrow svg { width: 13px; height: 13px; }
     .hero h2 {
       max-width: 720px;
       margin: 14px 0 8px;
@@ -225,6 +236,7 @@
       background: var(--primary-soft);
     }
     .tab-btn svg { width: 17px; }
+    .tab-btn:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
 
     .panel {
       display: none;
@@ -372,6 +384,7 @@
     .btn-danger { color: var(--danger); background: var(--danger-soft); }
     .btn-success { color: var(--success); background: var(--success-soft); }
     .btn-sm { padding: 8px 10px; font-size: 11px; }
+    .btn:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
 
     .toolbar {
       padding: 13px;
@@ -575,6 +588,7 @@
       background: #faf9ff;
       transform: translateX(2px);
     }
+    .option:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
     .option-key {
       width: 30px; height: 30px;
       flex: 0 0 30px;
@@ -681,6 +695,7 @@
       background: var(--surface-soft);
       color: var(--muted);
     }
+    .close-btn:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
     .modal-actions {
       display: flex;
       justify-content: flex-end;
@@ -742,53 +757,76 @@
   <div class="app-shell">
 
     <header class="topbar">
-      <!-- isi header kamu -->
+      <div class="brand">
+        <span class="brand-mark" aria-hidden="true"><i data-lucide="layout-grid"></i></span>
+        <div>
+          <h1>NexaHub</h1>
+          <p>Productivity Hub — uang, tautan, dan wawasanmu di satu tempat.</p>
+        </div>
+      </div>
+      <div class="status-pill">
+        <span class="status-dot" aria-hidden="true"></span>
+        <span><strong id="activityCount">0</strong> aktivitas tersimpan</span>
+      </div>
     </header>
 
     <main>
 
       <section class="hero" aria-label="Pengantar aplikasi">
-        <!-- isi hero kamu -->
+        <div class="hero-card">
+          <span class="eyebrow"><i data-lucide="sparkles" aria-hidden="true"></i> Productivity hub</span>
+          <h2>Kelola harimu, satu <span>ruang kerja</span> saja.</h2>
+          <p>Catat pemasukan dan pengeluaran, simpan tautan penting, dan uji pemahaman dasarmu lewat kuis singkat — semuanya tersimpan langsung di browser, tanpa akun dan tanpa server.</p>
+        </div>
+        <div class="insight-card">
+          <div>
+            <p class="insight-label">Tip hari ini</p>
+            <p class="insight-value">3 dalam 1</p>
+          </div>
+          <p class="insight-note">Satu halaman untuk keuangan, tautan, dan kuis — pindah tab kapan saja tanpa kehilangan data.</p>
+        </div>
       </section>
 
-      <nav class="tabs" role="tablist" aria-label="Navigasi fitur">
+      <nav aria-label="Navigasi fitur">
+        <div class="tabs" role="tablist">
 
-        <button
-          class="tab-btn active"
-          type="button"
-          role="tab"
-          aria-selected="true"
-          aria-controls="panel-expense"
-          data-tab="expense"
-        >
-          <i data-lucide="wallet"></i>
-          <span>Pengeluaran</span>
-        </button>
+          <button
+            class="tab-btn active"
+            type="button"
+            role="tab"
+            aria-selected="true"
+            aria-controls="panel-expense"
+            data-tab="expense"
+          >
+            <i data-lucide="wallet" aria-hidden="true"></i>
+            <span>Pengeluaran</span>
+          </button>
 
-        <button
-          class="tab-btn"
-          type="button"
-          role="tab"
-          aria-selected="false"
-          aria-controls="panel-bookmark"
-          data-tab="bookmark"
-        >
-          <i data-lucide="bookmark"></i>
-          <span>Bookmark</span>
-        </button>
+          <button
+            class="tab-btn"
+            type="button"
+            role="tab"
+            aria-selected="false"
+            aria-controls="panel-bookmark"
+            data-tab="bookmark"
+          >
+            <i data-lucide="bookmark" aria-hidden="true"></i>
+            <span>Bookmark</span>
+          </button>
 
-        <button
-          class="tab-btn"
-          type="button"
-          role="tab"
-          aria-selected="false"
-          aria-controls="panel-quiz"
-          data-tab="quiz"
-        >
-          <i data-lucide="brain"></i>
-          <span>Kuis</span>
-        </button>
+          <button
+            class="tab-btn"
+            type="button"
+            role="tab"
+            aria-selected="false"
+            aria-controls="panel-quiz"
+            data-tab="quiz"
+          >
+            <i data-lucide="brain" aria-hidden="true"></i>
+            <span>Kuis</span>
+          </button>
 
+        </div>
       </nav>
 
       <section
@@ -797,31 +835,241 @@
         role="tabpanel"
         aria-labelledby="expense-title"
       >
-        <!-- isi panel expense kamu -->
+        <div class="section-head">
+          <div>
+            <h3 id="expense-title">Uang Harian</h3>
+            <p>Catat transaksi harian dan pantau saldomu.</p>
+          </div>
+        </div>
+
+        <div class="stats">
+          <div class="stat income">
+            <div class="stat-top">
+              <span>Total pemasukan</span>
+              <span class="stat-icon" aria-hidden="true"><i data-lucide="arrow-down-circle"></i></span>
+            </div>
+            <div class="stat-value" id="totalIncome">Rp0</div>
+          </div>
+          <div class="stat expense">
+            <div class="stat-top">
+              <span>Total pengeluaran</span>
+              <span class="stat-icon" aria-hidden="true"><i data-lucide="arrow-up-circle"></i></span>
+            </div>
+            <div class="stat-value" id="totalExpense">Rp0</div>
+          </div>
+          <div class="stat balance">
+            <div class="stat-top">
+              <span>Saldo</span>
+              <span class="stat-icon" aria-hidden="true"><i data-lucide="wallet"></i></span>
+            </div>
+            <div class="stat-value" id="balance">Rp0</div>
+          </div>
+        </div>
+
+        <div class="workspace">
+          <div class="card form-card">
+            <h4 class="card-title">Transaksi baru</h4>
+            <p class="card-subtitle">Catat transaksi baru untuk hari ini.</p>
+            <form id="expenseForm" novalidate>
+              <div class="field">
+                <label for="expenseTitle">Judul / deskripsi</label>
+                <input class="input" id="expenseTitle" placeholder="Contoh: Makan siang">
+                <p class="form-error" id="expenseTitleError"></p>
+              </div>
+              <div class="field">
+                <label for="expenseType">Tipe</label>
+                <select class="select" id="expenseType">
+                  <option value="expense">Pengeluaran</option>
+                  <option value="income">Pemasukan</option>
+                </select>
+              </div>
+              <div class="field">
+                <label for="expenseCategory">Kategori</label>
+                <select class="select" id="expenseCategory">
+                  <option value="">Pilih kategori</option>
+                  <option>Makanan</option>
+                  <option>Transportasi</option>
+                  <option>Belanja</option>
+                  <option>Tagihan</option>
+                  <option>Hiburan</option>
+                  <option>Pendidikan</option>
+                  <option>Lainnya</option>
+                </select>
+                <p class="form-error" id="expenseCategoryError"></p>
+              </div>
+              <div class="field">
+                <label for="expenseAmount">Jumlah (Rp)</label>
+                <input class="input" id="expenseAmount" type="number" min="1" step="1" placeholder="0">
+                <p class="form-error" id="expenseAmountError"></p>
+              </div>
+              <div class="field">
+                <label for="expenseDate">Tanggal</label>
+                <input class="input" id="expenseDate" type="date">
+                <p class="form-error" id="expenseDateError"></p>
+              </div>
+              <button class="btn btn-primary" type="submit"><i data-lucide="plus" aria-hidden="true"></i> Tambah transaksi</button>
+            </form>
+          </div>
+
+          <div>
+            <div class="card toolbar">
+              <div class="search">
+                <label for="expenseSearch" class="visually-hidden">Cari judul transaksi</label>
+                <input class="input" id="expenseSearch" type="text" placeholder="Cari judul transaksi…">
+              </div>
+              <div>
+                <label for="expenseFilterType" class="visually-hidden">Filter tipe transaksi</label>
+                <select class="select" id="expenseFilterType">
+                  <option value="all">Semua tipe</option>
+                  <option value="income">Pemasukan</option>
+                  <option value="expense">Pengeluaran</option>
+                </select>
+              </div>
+              <div>
+                <label for="expenseSort" class="visually-hidden">Urutkan transaksi</label>
+                <select class="select" id="expenseSort">
+                  <option value="newest">Terbaru</option>
+                  <option value="oldest">Terlama</option>
+                  <option value="highest">Jumlah terbesar</option>
+                  <option value="lowest">Jumlah terkecil</option>
+                </select>
+              </div>
+            </div>
+            <div class="items" id="expenseList"></div>
+          </div>
+        </div>
       </section>
 
       <section
         id="panel-bookmark"
         class="panel"
         role="tabpanel"
+        aria-labelledby="bookmark-title"
       >
-        <!-- isi panel bookmark kamu -->
+        <div class="section-head">
+          <div>
+            <h3 id="bookmark-title">Manajer Tautan</h3>
+            <p>Simpan dan kelola tautan favoritmu.</p>
+          </div>
+          <button class="btn btn-ghost btn-sm" id="clearBookmarks" type="button"><i data-lucide="trash" aria-hidden="true"></i> Bersihkan semua</button>
+        </div>
+
+        <div class="workspace">
+          <div class="card form-card">
+            <h4 class="card-title">Tautan baru</h4>
+            <p class="card-subtitle">Simpan link penting untuk diakses lagi nanti.</p>
+            <form id="bookmarkForm" novalidate>
+              <div class="field">
+                <label for="bookmarkName">Nama / judul</label>
+                <input class="input" id="bookmarkName" placeholder="Contoh: Dokumentasi MDN">
+                <p class="form-error" id="bookmarkNameError"></p>
+              </div>
+              <div class="field">
+                <label for="bookmarkUrl">URL</label>
+                <input class="input" id="bookmarkUrl" type="url" placeholder="https://…">
+                <p class="form-error" id="bookmarkUrlError"></p>
+              </div>
+              <div class="field">
+                <label for="bookmarkCategory">Kategori / tag</label>
+                <input class="input" id="bookmarkCategory" placeholder="Contoh: Belajar, Kuliah">
+                <p class="form-error" id="bookmarkCategoryError"></p>
+              </div>
+              <div class="field">
+                <label for="bookmarkNote">Catatan (opsional)</label>
+                <textarea class="textarea" id="bookmarkNote" placeholder="Catatan singkat…"></textarea>
+              </div>
+              <button class="btn btn-primary" type="submit"><i data-lucide="bookmark-plus" aria-hidden="true"></i> Simpan tautan</button>
+            </form>
+          </div>
+
+          <div>
+            <div class="card toolbar" style="grid-template-columns:1.5fr 1fr">
+              <div class="search">
+                <label for="bookmarkSearch" class="visually-hidden">Cari nama, URL, atau kategori tautan</label>
+                <input class="input" id="bookmarkSearch" type="text" placeholder="Cari nama, URL, atau kategori…">
+              </div>
+              <div>
+                <label for="bookmarkSort" class="visually-hidden">Urutkan tautan</label>
+                <select class="select" id="bookmarkSort">
+                  <option value="newest">Terbaru</option>
+                  <option value="az">Judul A–Z</option>
+                  <option value="za">Judul Z–A</option>
+                </select>
+              </div>
+            </div>
+            <div class="bookmark-grid" id="bookmarkList"></div>
+          </div>
+        </div>
       </section>
 
       <section
         id="panel-quiz"
         class="panel"
         role="tabpanel"
+        aria-labelledby="quiz-title"
       >
-        <!-- isi panel quiz kamu -->
+        <h3 id="quiz-title" class="visually-hidden">Kuis Interaktif</h3>
+        <div class="quiz-wrap">
+
+          <div id="quizStart" class="quiz-card" style="text-align:center">
+            <span class="eyebrow"><i data-lucide="brain" aria-hidden="true"></i> Dasar HTML, CSS &amp; JS</span>
+            <h4 style="font:800 26px 'Plus Jakarta Sans',sans-serif;letter-spacing:-.03em;margin:14px 0 8px">Seberapa siap kamu?</h4>
+            <p style="color:var(--muted);max-width:420px;margin:0 auto 16px">Enam pertanyaan singkat untuk menguji dasar-dasar pengembangan web.</p>
+            <div class="highscore"><i data-lucide="trophy" aria-hidden="true"></i> Skor tertinggi: <span id="startHighScore">0 / 6</span></div>
+            <div><button class="btn btn-primary" id="startQuiz" type="button" style="width:auto;margin:0 auto"><i data-lucide="play" aria-hidden="true"></i> Mulai kuis</button></div>
+          </div>
+
+          <div id="quizQuestionView" class="quiz-card" hidden>
+            <div class="quiz-top">
+              <div class="progress-wrap">
+                <div class="progress-label">
+                  <span id="questionCounter">Soal 1 dari 6</span>
+                  <span id="questionPercent">0%</span>
+                </div>
+                <div class="progress"><div class="progress-bar" id="progressBar"></div></div>
+              </div>
+            </div>
+            <h4 class="quiz-question" id="quizQuestion"></h4>
+            <div class="options" id="quizOptions" role="group" aria-label="Pilihan jawaban"></div>
+            <p class="quiz-feedback" id="quizFeedback" hidden aria-live="polite"></p>
+            <div class="quiz-actions">
+              <button class="btn btn-ghost" id="resetQuiz" type="button"><i data-lucide="x" aria-hidden="true"></i> Keluar</button>
+              <button class="btn btn-primary" id="nextQuestion" type="button" disabled>Lanjut <i data-lucide="arrow-right" aria-hidden="true"></i></button>
+            </div>
+          </div>
+
+          <div id="quizResult" class="quiz-card quiz-result" hidden>
+            <div class="score-circle" id="scoreCircle">0 / 6</div>
+            <h4 id="resultTitle">Kuis selesai!</h4>
+            <p id="resultDescription"></p>
+            <div class="highscore"><i data-lucide="trophy" aria-hidden="true"></i> Skor tertinggi: <span id="resultHighScore">0 / 6</span></div>
+            <div><button class="btn btn-primary" id="restartQuiz" type="button" style="width:auto;margin:0 auto"><i data-lucide="rotate-ccw" aria-hidden="true"></i> Main lagi</button></div>
+          </div>
+
+        </div>
       </section>
 
     </main>
 
     <footer>
-      NexaHub · Dibuat dengan HTML, CSS, JavaScript & localStorage · Data tetap di browser kamu.
+      NexaHub · Dibuat dengan HTML, CSS, JavaScript &amp; localStorage · Data tetap di browser kamu.
     </footer>
 
+  </div>
+
+  <div class="modal-backdrop" id="modalBackdrop" hidden aria-hidden="true">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+      <div class="modal-head">
+        <h3 id="modalTitle">Judul modal</h3>
+        <button class="close-btn" id="modalClose" type="button" aria-label="Tutup dialog"><i data-lucide="x" aria-hidden="true"></i></button>
+      </div>
+      <div id="modalBody"></div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast" hidden role="status" aria-live="polite">
+    <i data-lucide="check-circle-2" aria-hidden="true"></i>
+    <span id="toastMessage"></span>
   </div>
 
   <script src="assets/script.js"></script>
